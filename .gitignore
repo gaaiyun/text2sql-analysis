@@ -1,0 +1,81 @@
+# 敏感信息 - 绝不上传
+.env
+.env.local
+.env.production
+config.local.json
+config.local.yaml
+*.key
+*.pem
+*.crt
+secrets.json
+credentials.json
+
+# API Keys 和配置文件（保留模板）
+config.json
+config.template.json
+!config.template.json
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+!test.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# n8n
+.n8n/
+n8n_local.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志
+*.log
+logs/
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+*.bak
+
+# 备份
+backup/
+backups/
+*.zip
+*.tar.gz
+
+# 测试数据
+test_data/
+sample_data/
+!test.db
+
+# 本地覆盖配置
+override.json
+local_config.py

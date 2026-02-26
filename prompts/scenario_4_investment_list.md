@@ -59,6 +59,11 @@
   - `经营异常` (abnormal_operation) - 风险信息
 - **批量查询**: 使用 IN 语句一次性查询多个企业
 - **字段精简**: 仅选择评估所需字段
+- **字符集处理**: ⚠️ **JOIN 时必须使用 COLLATE**
+  ```sql
+  ON b.eid = ic.eid COLLATE utf8mb4_unicode_ci
+  ```
+- **SQL 验证**: 只生成单个 SELECT 语句
 
 ## 评分标准
 ```

@@ -29,6 +29,11 @@
   - `税收违法` (tax_violation) - 税务违规
   - `行政处罚` (administrative_penalty) - 行政处罚
 - **企业匹配**: 使用统一社会信用代码或企业名称精确匹配
+- **字符集处理**: ⚠️ **JOIN 时必须使用 COLLATE**
+  ```sql
+  ON b.eid = ic.eid COLLATE utf8mb4_unicode_ci
+  ```
+- **SQL 验证**: 只生成单个 SELECT 语句
 
 ## 输出格式
 ```markdown

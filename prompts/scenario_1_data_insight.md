@@ -24,6 +24,11 @@
 - **字段选择**: 仅选择必要字段，避免 SELECT *
 - **聚合函数**: 合理使用 COUNT, SUM, AVG, MAX, MIN
 - **时间过滤**: 默认查询近 3 年数据，除非用户指定
+- **字符集处理**: ⚠️ **JOIN 时必须使用 COLLATE**
+  ```sql
+  ON b.eid = ic.eid COLLATE utf8mb4_unicode_ci
+  ```
+- **SQL 验证**: 只生成单个 SELECT 语句
 
 ## 输出格式
 ```markdown

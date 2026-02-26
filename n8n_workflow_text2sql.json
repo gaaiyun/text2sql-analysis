@@ -2,17 +2,21 @@
   "name": "Text2SQL Analysis Workflow",
   "nodes": [
     {
-      "parameters": {},
-      "id": " webhook-trigger",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "text2sql",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-trigger",
       "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
+      "typeVersion": 2,
       "position": [250, 300],
       "webhookId": "text2sql-webhook"
     },
     {
       "parameters": {
-        "jsCode": "// 任务分类和场景识别\nconst input = $input.first().json;\nconst query = input.query || input.body?.query || '';\n\n// 场景关键词匹配\nconst scenarios = {\n  '数据洞察': ['洞察', '分析', '趋势', '统计', '对比'],\n  '地区产业': ['地区', '省份', '城市', '产业', '经济', '发展'],\n  '行业分析': ['行业', '领域', '赛道', '技术方向', '分布'],\n  '招商清单': ['招商', '清单', '筛选', '评估', '企业列表'],\n  '尽调报告': ['尽调', '报告', '调查', '详细', '全面']\n};\n\nlet detectedScenario = '数据洞察'; // 默认场景\nlet maxScore = 0;\n\nfor (const [scenario, keywords] of Object.entries(scenarios)) {\n  const score = keywords.filter(kw => query.includes(kw)).length;\n  if (score > maxScore) {\n    maxScore = score;\n    detectedScenario = scenario;\n  }\n}\n\nreturn [{\n  json: {\n    originalQuery: query,\n    scenario: detectedScenario,\n    timestamp: new Date().toISOString(),\n    sessionId: input.sessionId || Date.now().toString()\n  }\n}];"
+        "jsCode": "const input = $input.first().json;\nconst query = input.query || input.body.query || '';\n\nconst scenarios = {\n  '数据洞察': ['洞察', '分析', '趋势', '统计'],\n  '地区产业': ['地区', '省份', '城市', '产业'],\n  '行业分析': ['行业', '领域', '赛道'],\n  '招商清单': ['招商', '清单', '筛选', '评估'],\n  '尽调报告': ['尽调', '报告', '调查']\n};\n\nlet detectedScenario = '数据洞察';\nlet maxScore = 0;\n\nfor (const [scenario, keywords] of Object.entries(scenarios)) {\n  const score = keywords.filter(kw => query.includes(kw)).length;\n  if (score > maxScore) {\n    maxScore = score;\n    detectedScenario = scenario;\n  }\n}\n\nreturn [{\n  json: {\n    originalQuery: query,\n    scenario: detectedScenario,\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "task-classifier",
       "name": "Task Classifier",
@@ -24,20 +28,26 @@
       "parameters": {
         "method": "POST",
         "url": "http://localhost:5000/api/v0/generate_sql",
-        "body": {
-          "question": "={{ $json.originalQuery }}"
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "question",
+              "value": "={{ $json.originalQuery }}"
+            }
+          ]
         },
         "options": {}
       },
       "id": "vanna-sql-generator",
       "name": "Vanna SQL Generator",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
+      "typeVersion": 4.2,
       "position": [650, 300]
     },
     {
       "parameters": {
-        "jsCode": "// 批量数据处理\nconst sqlResult = $input.first().json;\nconst taskInfo = $('Task Classifier').first().json;\n\n// 检查SQL生成是否成功\nif (!sqlResult.sql && !sqlResult.query) {\n  return [{\n    json: {\n      error: 'SQL生成失败',\n      message: sqlResult.error || '未知错误',\n      scenario: taskInfo.scenario\n    }\n  }];\n}\n\nconst sql = sqlResult.sql || sqlResult.query;\n\nreturn [{\n  json: {\n    sql: sql,\n    scenario: taskInfo.scenario,\n    originalQuery: taskInfo.originalQuery,\n    needsAnalysis: ['数据洞察', '地区产业', '行业分析'].includes(taskInfo.scenario),\n    needsExcel: taskInfo.scenario === '招商清单',\n    needsWord: taskInfo.scenario === '尽调报告'\n  }\n}];"
+        "jsCode": "const sqlResult = $input.first().json;\nconst taskInfo = $('Task Classifier').first().json;\n\nif (!sqlResult.sql && !sqlResult.query) {\n  return [{\n    json: {\n      error: 'SQL generation failed',\n      message: sqlResult.error || 'Unknown error',\n      scenario: taskInfo.scenario\n    }\n  }];\n}\n\nconst sql = sqlResult.sql || sqlResult.query;\n\nreturn [{\n  json: {\n    sql: sql,\n    scenario: taskInfo.scenario,\n    originalQuery: taskInfo.originalQuery,\n    needsAnalysis: ['数据洞察', '地区产业', '行业分析'].includes(taskInfo.scenario)\n  }\n}];"
       },
       "id": "data-processor",
       "name": "Data Processor",
@@ -47,44 +57,16 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
-          "conditions": [
-            {
-              "id": "condition-1",
-              "leftValue": "={{ $json.scenario }}",
-              "rightValue": "数据洞察",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        }
-      },
-      "id": "scenario-router",
-      "name": "Scenario Router",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [1050, 300]
-    },
-    {
-      "parameters": {
         "model": "qwen3.5-plus",
         "messages": {
-          "message": [
+          "values": [
             {
               "role": "system",
-              "content": "你是一个数据分析专家。基于数据库查询结果，进行深度数据洞察分析。\n\n要求：\n1. 分析数据趋势、异常点、关键指标\n2. 结合业务场景给出解读\n3. 输出Markdown格式，包含标题、列表、表格\n4. 如有需要，建议进一步查询的方向"
+              "content": "你是一个数据分析专家。基于数据库查询结果进行深度分析。要求：1.分析数据趋势和异常点 2.结合业务场景解读 3.输出 Markdown 格式"
             },
             {
               "role": "user",
-              "content": "=用户问题：{{ $('Data Processor').item.json.originalQuery }}\n\n生成的SQL：\n```sql\n{{ $('Data Processor').item.json.sql }}\n```\n\n请基于这个SQL查询意图，提供分析框架和建议。"
+              "content": "={{ '用户问题：' + $('Data Processor').first().json.originalQuery + '\\n\\nSQL: ' + $('Data Processor').first().json.sql }}"
             }
           ]
         },
@@ -92,9 +74,9 @@
       },
       "id": "llm-analysis",
       "name": "LLM Analysis",
-      "type": "n8n-nodes-base.openAi",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1,
-      "position": [1250, 200],
+      "position": [1050, 300],
       "credentials": {
         "openAiApi": {
           "id": "YOUR_BAILIAN_CREDENTIAL_ID",
@@ -104,55 +86,99 @@
     },
     {
       "parameters": {
-        "jsCode": "// Markdown格式化输出\nconst llmResult = $input.first().json;\nconst taskInfo = $('Data Processor').first().json;\n\nconst markdownOutput = `# Text2SQL 分析报告\n\n## 查询信息\n- **场景**: ${taskInfo.scenario}\n- **原始问题**: ${taskInfo.originalQuery}\n- **生成SQL**: \n\`\`\`sql\n${taskInfo.sql}\n\`\`\`\n\n## 分析结果\n${llmResult.content || llmResult.message?.content || '分析完成'}\n\n---\n*生成时间: ${new Date().toLocaleString()}*\n`;\n\nreturn [{\n  json: {\n    output: markdownOutput,\n    format: 'markdown',\n    scenario: taskInfo.scenario\n  }\n}];"
+        "jsCode": "const llmResult = $input.first().json;\nconst taskInfo = $('Data Processor').first().json;\n\nconst markdownOutput = '# Text2SQL 分析报告\\n\\n## 查询信息\\n- **场景**: ' + taskInfo.scenario + '\\n- **原始问题**: ' + taskInfo.originalQuery + '\\n- **生成 SQL**: \\n```sql\\n' + taskInfo.sql + '\\n```\\n\\n## 分析结果\\n' + (llmResult.content || llmResult.message?.content || '分析完成') + '\\n\\n---\\n*生成时间：' + new Date().toLocaleString() + '*';\n\nreturn [{\n  json: {\n    output: markdownOutput,\n    format: 'markdown',\n    scenario: taskInfo.scenario\n  }\n}];"
       },
       "id": "markdown-formatter",
       "name": "Markdown Formatter",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1450, 250]
+      "position": [1250, 300]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify($json) }}"
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
       },
       "id": "response-webhook",
       "name": "Response Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [1650, 300]
+      "typeVersion": 1.1,
+      "position": [1450, 300]
     }
   ],
   "connections": {
     "Webhook Trigger": {
-      "main": [[{"node": "Task Classifier", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Task Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Task Classifier": {
-      "main": [[{"node": "Vanna SQL Generator", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Vanna SQL Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Vanna SQL Generator": {
-      "main": [[{"node": "Data Processor", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Data Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Data Processor": {
-      "main": [[{"node": "Scenario Router", "type": "main", "index": 0}]]
-    },
-    "Scenario Router": {
       "main": [
-        [{"node": "LLM Analysis", "type": "main", "index": 0}],
-        [{"node": "Markdown Formatter", "type": "main", "index": 0}]
+        [
+          {
+            "node": "LLM Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "LLM Analysis": {
-      "main": [[{"node": "Markdown Formatter", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Markdown Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Markdown Formatter": {
-      "main": [[{"node": "Response Webhook", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Response Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
     "executionOrder": "v1"
   },
   "staticData": null,
-  "tags": []
+  "tags": [],
+  "triggerCounters": {}
 }

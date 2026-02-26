@@ -1,0 +1,8 @@
+# Exclude sensitive files from test commit
+MEMORY.md
+memory/
+skills/
+*.png
+.env
+config.json
+openclaw.json

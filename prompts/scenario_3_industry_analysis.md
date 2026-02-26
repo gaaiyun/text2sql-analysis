@@ -24,6 +24,11 @@
   - `股东变更` (shareholder_changes) - 股权变动
 - **行业筛选**: 使用 industry_code 或 tags 字段精确匹配
 - **时间范围**: 默认近 5 年，可调整
+- **字符集处理**: ⚠️ **JOIN 时必须使用 COLLATE**
+  ```sql
+  ON b.eid = ic.eid COLLATE utf8mb4_unicode_ci
+  ```
+- **SQL 验证**: 只生成单个 SELECT 语句
 
 ## 输出格式
 ```markdown

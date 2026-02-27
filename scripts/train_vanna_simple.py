@@ -4,11 +4,18 @@ Vanna AI 训练脚本（简化版）
 
 使用方法:
     python scripts/train_vanna_simple.py
+
+注意：数据库配置从环境变量或 config.json 加载
 """
 
 import sys
 import pymysql
 from pathlib import Path
+
+# 添加项目根目录到路径
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from src.utils.config import get_database_config
 
 # 尝试导入 vanna
 try:
@@ -18,32 +25,30 @@ except ImportError:
     print("[ERROR] Vanna 未安装，请先安装：pip install vanna")
     sys.exit(1)
 
-# 配置
-DB_CONFIG = {
-    'host': '8.134.9.77',
-    'port': 3306,
-    'user': 'Gaaiyun',
-    'password': 'Why513338',
-    'database': 'Gaaiyun'
-}
+# 配置（从环境变量加载）
+DB_CONFIG = get_database_config('scenario_1_3')
 
 def extract_ddl():
     """从数据库提取 DDL"""
     print("\n[1/3] 提取 DDL...")
-    
+
+    if not DB_CONFIG.get('host') or not DB_CONFIG.get('database'):
+        print("  [ERROR] 数据库配置无效，请检查 .env 或 config.json")
+        return []
+
     try:
         conn = pymysql.connect(**DB_CONFIG)
         cur = conn.cursor()
-        
+
         # 获取所有表
         cur.execute("""
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'Gaaiyun'
-        """)
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = %s
+        """, (DB_CONFIG['database'],))
         tables = [row[0] for row in cur.fetchall()]
         print(f"  找到 {len(tables)} 张表")
-        
+
         # 提取每张表的 DDL
         ddls = []
         for table in tables[:5]:  # 只取前 5 张表
@@ -51,11 +56,11 @@ def extract_ddl():
             result = cur.fetchone()
             if result:
                 ddls.append(result[1])
-                print(f"  ✅ {table}")
-        
+                print(f "  ✅ {table}")
+
         conn.close()
         return ddls
-        
+
     except Exception as e:
         print(f"  [ERROR] {e}")
         return []
@@ -63,11 +68,11 @@ def extract_ddl():
 def train_with_ddl(ddls):
     """使用 DDL 训练 Vanna"""
     print("\n[2/3] 训练 Vanna...")
-    
+
     if not ddls:
         print("  [WARN] 没有 DDL 可训练")
         return
-    
+
     for i, ddl in enumerate(ddls, 1):
         try:
             # 注意：这里需要实际的 Vanna API 配置
@@ -80,7 +85,7 @@ def train_with_ddl(ddls):
 def generate_sample_questions():
     """生成示例问题"""
     print("\n[3/3] 示例问题（供参考）...")
-    
+
     questions = [
         "查询近 3 年企业融资趋势",
         "分析投资事件最多的行业",
@@ -88,7 +93,7 @@ def generate_sample_questions():
         "查询注册资本超过 1000 万的企业",
         "查询有知识产权的企业列表"
     ]
-    
+
     for i, q in enumerate(questions, 1):
         print(f"  {i}. {q}")
 
@@ -98,7 +103,7 @@ def main():
     print("Vanna AI 训练脚本（简化版）")
     print("=" * 60)
     print()
-    
+
     # 检查 Vanna 配置
     print("[INFO] 检查 Vanna 配置...")
     # print(f"  API Key: {vn.api_key[:20]}..." if vn.api_key else "  [WARN] 未设置 API Key")
@@ -106,16 +111,16 @@ def main():
     print("  [INFO] 需要配置 Vanna API Key 和 Org")
     print("  请访问 https://vanna.ai/ 获取")
     print()
-    
+
     # 提取 DDL
     ddls = extract_ddl()
-    
+
     # 训练
     train_with_ddl(ddls)
-    
+
     # 示例问题
     generate_sample_questions()
-    
+
     print("\n" + "=" * 60)
     print("训练完成！")
     print("=" * 60)

@@ -1,54 +1,24 @@
 {
-  "_comment": "配置模板 - 请复制此文件为 config.json 并填写真实值",
-  "_warning": "切勿将包含真实凭证的 config.json 上传到 GitHub!",
-  
-  "database": {
-    "scenario_1_3": {
-      "host": "YOUR_DB_HOST",
-      "port": 3306,
-      "user": "YOUR_DB_USER",
-      "password": "YOUR_DB_PASSWORD",
-      "database": "YOUR_DB_NAME"
-    },
-    "scenario_4_5": {
-      "host": "YOUR_DB_HOST",
-      "port": 3306,
-      "user": "YOUR_DB_USER",
-      "password": "YOUR_DB_PASSWORD",
-      "database": "YOUR_DB_NAME"
-    }
-  },
-  
   "bailian": {
-    "api_key": "YOUR_DASHSCOPE_API_KEY",
-    "base_url": "https://coding.dashscope.aliyuncs.com/v1",
-    "model": "qwen3.5-plus",
-    "max_tokens": 4096,
-    "temperature": 0.7
+    "api_key": "${DASHSCOPE_API_KEY}",
+    "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"
   },
-  
-  "vanna": {
-    "api_key": "YOUR_VANNA_API_KEY",
-    "org": "your-org-name",
-    "model": "your-model"
+  "database": {
+    "host": "${DB_HOST}",
+    "port": "${DB_PORT}",
+    "database": "${DB_NAME}",
+    "user": "${DB_USER}",
+    "password": "${DB_PASSWORD}"
   },
-  
-  "n8n": {
-    "webhook_url": "http://localhost:5646/webhook/text2sql",
-    "api_url": "http://localhost:5646/api/v1"
+  "model": {
+    "name": "qwen-max",
+    "temperature": 0.1
   },
-  
-  "output": {
-    "default_format": "markdown",
-    "excel_output_dir": "./output/excel",
-    "word_output_dir": "./output/word",
-    "html_output_dir": "./output/html"
-  },
-  
-  "logging": {
-    "level": "INFO",
-    "file": "./logs/text2sql.log",
-    "max_size_mb": 10,
-    "backup_count": 5
-  }
+  "scenarios": [
+    "scenario_1_data_insight.md",
+    "scenario_2_regional_industry.md",
+    "scenario_3_industry_analysis.md",
+    "scenario_4_investment_list.md",
+    "scenario_5_due_diligence.md"
+  ]
 }

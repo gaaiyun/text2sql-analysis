@@ -4,6 +4,8 @@ Vanna AI 训练数据生成器
 
 使用方法:
     python scripts/generate_vanna_training.py
+
+注意：API Key 从环境变量或 config.json 加载
 """
 
 import json
@@ -11,10 +13,16 @@ import sys
 from pathlib import Path
 import httpx
 
-# 配置
-KIRO_BASE_URL = "https://kiro.singforge.dpdns.org:11128/v1"
-KIRO_API_KEY = "kp-b7b71ffe429782691c981878c10bd1a16404ade12a0b3523"
-MODEL = "claude-opus-4.6"
+# 添加项目根目录到路径
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from src.utils.config import get_kiro_config
+
+# 配置（从环境变量加载）
+KIRO_CONFIG = get_kiro_config()
+KIRO_BASE_URL = KIRO_CONFIG['base_url']
+KIRO_API_KEY = KIRO_CONFIG['api_key']
+MODEL = KIRO_CONFIG['model']
 
 # Schema 文件 (使用绝对路径)
 SCRIPT_DIR = Path(__file__).parent
@@ -26,14 +34,14 @@ def load_schema(schema_path):
     if not schema_path.exists():
         print(f"[ERROR] Schema 文件不存在：{schema_path}")
         return None
-    
+
     with open(schema_path, 'r', encoding='utf-8') as f:
         return f.read()
 
 def generate_training_data(schema, scenario_name):
     """使用 Claude 生成训练数据"""
     print(f"\n[INFO] 正在为 {scenario_name} 生成训练数据...")
-    
+
     prompt = f"""你是 Text2SQL 专家。基于以下数据库 Schema，生成 Vanna AI 训练数据。
 
 Schema:
@@ -60,7 +68,7 @@ Schema:
   "documents": ["文档 1", "文档 2", ...]
 }}
 """
-    
+
     try:
         response = httpx.post(
             f"{KIRO_BASE_URL}/chat/completions",
@@ -79,11 +87,11 @@ Schema:
             },
             timeout=120
         )
-        
+
         if response.status_code == 200:
             result = response.json()
             content = result['choices'][0]['message']['content']
-            
+
             # 尝试解析 JSON
             import re
             json_match = re.search(r'\{.*\}', content, re.DOTALL)
@@ -101,7 +109,7 @@ Schema:
             print(f"[ERROR] API 调用失败：{response.status_code}")
             print(f"  {response.text[:200]}")
             return None
-            
+
     except Exception as e:
         print(f"[ERROR] 生成失败：{e}")
         return None
@@ -120,16 +128,16 @@ def main():
     print(f"使用模型：{MODEL}")
     print(f"API: {KIRO_BASE_URL}")
     print()
-    
+
     # 场景 1-3
     schema1 = load_schema(SCHEMA_PATH_1)
     if schema1:
         data1 = generate_training_data(schema1, "场景 1-3 (Gaaiyun)")
         if data1:
             save_training_data(data1, Path("vanna_training_gaaiyun.json"))
-    
+
     print()
-    
+
     # 场景 4-5
     schema2 = load_schema(SCHEMA_PATH_2)
     if schema2:
@@ -137,7 +145,7 @@ def main():
         data2 = generate_training_data(schema2[:10000], "场景 4-5 (gaaiyun_2)")
         if data2:
             save_training_data(data2, Path("vanna_training_gaaiyun_2.json"))
-    
+
     print("\n" + "=" * 60)
     print("生成完成！")
     print("=" * 60)

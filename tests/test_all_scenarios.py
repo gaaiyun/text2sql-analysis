@@ -3,35 +3,28 @@ Text2SQL 完整场景测试
 测试 5 大场景的 SQL 生成能力
 
 使用模型：Kiro Claude Opus 4.6
+
+注意：API Key 和数据库配置从环境变量或 config.json 加载
 """
 
 from openai import OpenAI
 import pymysql
 import json
 from datetime import datetime
+from pathlib import Path
+import sys
 
-# ============ 配置 ============
-KIRO_CONFIG = {
-    "base_url": "https://kiro.singforge.dpdns.org:11128/v1",
-    "api_key": "kp-b7b71ffe429782691c981878c10bd1a16404ade12a0b3523",
-    "model": "claude-opus-4.6"  # 使用最强模型
-}
+# 添加项目根目录到路径
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from src.utils.config import get_kiro_config, get_database_config
+
+# ============ 配置（从环境变量加载） ============
+KIRO_CONFIG = get_kiro_config()
 
 DB_CONFIG = {
-    "scenario_1_3": {
-        "host": "8.134.9.77",
-        "port": 3306,
-        "user": "Gaaiyun",
-        "password": "Why513338",
-        "database": "Gaaiyun"
-    },
-    "scenario_4_5": {
-        "host": "8.134.9.77",
-        "port": 3306,
-        "user": "gaaiyun_2",
-        "password": "Why513338",
-        "database": "gaaiyun_2"
-    }
+    "scenario_1_3": get_database_config('scenario_1_3'),
+    "scenario_4_5": get_database_config('scenario_4_5')
 }
 
 # ============ 5 大场景测试问题 ============
@@ -78,23 +71,25 @@ def get_schema(db_config):
     """获取数据库 Schema"""
     conn = pymysql.connect(**db_config)
     cur = conn.cursor()
-    
+
     cur.execute("""
-        SELECT table_name, table_comment 
-        FROM information_schema.tables 
+        SELECT table_name, table_comment
+        FROM information_schema.tables
         WHERE table_schema = %s
     """, (db_config["database"],))
-    
+
     tables = cur.fetchall()
-    
+
     schema = []
     for table_name, comment in tables:
         cur.execute(f"SHOW CREATE TABLE `{table_name}`")
         create_sql = cur.fetchone()[1]
         schema.append(f"-- {comment or table_name}\n{create_sql}")
-    
+        if len(schema) >= 10:  # 只取前 10 张表
+            break
+
     conn.close()
-    return "\n\n".join(schema[:10])  # 只取前 10 张表
+    return "\n\n".join(schema)
 
 def generate_sql(client, question, schema):
     """使用 LLM 生成 SQL"""
@@ -124,9 +119,9 @@ SQL:"""
         max_tokens=1000,
         temperature=0.3
     )
-    
+
     sql = response.choices[0].message.content.strip()
-    
+
     # 清理 Markdown 代码块
     if sql.startswith("```sql"):
         sql = sql[6:]
@@ -134,7 +129,7 @@ SQL:"""
         sql = sql[3:]
     if sql.endswith("```"):
         sql = sql[:-3]
-    
+
     return sql.strip()
 
 def test_sql(sql, db_config):
@@ -142,15 +137,15 @@ def test_sql(sql, db_config):
     try:
         conn = pymysql.connect(**db_config)
         cur = conn.cursor()
-        
+
         cur.execute(sql)
         results = cur.fetchall()
-        
+
         # 获取列名
         columns = [desc[0] for desc in cur.description]
-        
+
         conn.close()
-        
+
         return {
             "success": True,
             "row_count": len(results),
@@ -173,28 +168,33 @@ def main():
     print(f"数据库：2 个 ({DB_CONFIG['scenario_1_3']['database']} + {DB_CONFIG['scenario_4_5']['database']})")
     print(f"测试场景：5 个")
     print()
-    
+
+    # 验证配置
+    if not KIRO_CONFIG.get('api_key'):
+        print("[ERROR] KIRO_API_KEY 未设置，请在 .env 文件中配置")
+        sys.exit(1)
+
     # 初始化 OpenAI 客户端
     client = OpenAI(
         base_url=KIRO_CONFIG["base_url"],
         api_key=KIRO_CONFIG["api_key"]
     )
-    
+
     results = []
-    
+
     for scenario in TEST_SCENARIOS:
         print(f"\n{'='*80}")
         print(f"场景 {scenario['id']}: {scenario['name']}")
         print(f"{'='*80}")
         print(f"问题：{scenario['question']}")
         print()
-        
+
         # 1. 获取 Schema
         print("[1/3] 获取数据库 Schema...")
         db_config = DB_CONFIG[scenario["database"]]
         schema = get_schema(db_config)
         print(f"[OK] 获取到 {len(schema.split(chr(10)))} 行 Schema")
-        
+
         # 2. 生成 SQL
         print()
         print("[2/3] 生成 SQL...")
@@ -211,12 +211,12 @@ def main():
                 "sql": None
             })
             continue
-        
+
         # 3. 测试 SQL 执行
         print()
         print("[3/3] 测试 SQL 执行...")
         test_result = test_sql(sql, db_config)
-        
+
         if test_result["success"]:
             print(f"[OK] SQL 执行成功")
             print(f"  返回行数：{test_result['row_count']}")
@@ -225,7 +225,7 @@ def main():
                 print(f"  示例：{test_result['sample'][0]}")
         else:
             print(f"[ERROR] SQL 执行失败：{test_result['error']}")
-        
+
         results.append({
             "scenario": scenario["name"],
             "success": test_result["success"],
@@ -233,31 +233,31 @@ def main():
             "row_count": test_result.get("row_count", 0),
             "error": test_result.get("error")
         })
-        
+
         print()
-    
+
     # ============ 汇总报告 ============
     print("\n" + "=" * 80)
     print("测试汇总报告")
     print("=" * 80)
     print()
-    
+
     success_count = sum(1 for r in results if r["success"])
     total_count = len(results)
-    
+
     print(f"总场景数：{total_count}")
     print(f"成功：{success_count}")
     print(f"失败：{total_count - success_count}")
     print(f"成功率：{success_count/total_count*100:.1f}%")
     print()
-    
+
     print("详细结果:")
     for r in results:
-        status = "✅" if r["success"] else "❌"
+        status = "[OK]" if r["success"] else "[FAIL]"
         print(f"  {status} {r['scenario']}: {'成功' if r['success'] else '失败'} - {r.get('row_count', 0)} 行")
         if r.get("error"):
             print(f"     错误：{r['error'][:100]}")
-    
+
     # 保存结果
     report = {
         "timestamp": datetime.now().isoformat(),
@@ -268,10 +268,10 @@ def main():
         "success_rate": f"{success_count/total_count*100:.1f}%",
         "results": results
     }
-    
+
     with open("test_results.json", "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
-    
+
     print()
     print(f"[OK] 测试结果已保存到：test_results.json")
     print()

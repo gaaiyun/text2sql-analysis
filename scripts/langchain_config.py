@@ -10,14 +10,15 @@ pip install sqlalchemy
 ## 百炼 API 配置
 
 ```python
+import os
 from langchain_community.llms import Tongyi
 from langchain_community.utilities import SQLDatabase
 from langchain.chains import SQLDatabaseChain
 
-# 配置百炼 API
+# 配置百炼 API（从环境变量读取）
 llm = Tongyi(
     model_name="qwen-plus",
-    dashscope_api_key="sk-sp-0b28da8e3f404df182c05d3fd45787a5"
+    dashscope_api_key=os.environ.get("DASHSCOPE_API_KEY", "")
 )
 
 # 配置数据库

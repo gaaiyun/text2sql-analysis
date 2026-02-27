@@ -1,81 +1,72 @@
-# 敏感信息 - 绝不上传
-.env
-.env.local
-.env.production
-config.local.json
-config.local.yaml
-*.key
-*.pem
-*.crt
-secrets.json
-credentials.json
+# Text2SQL 项目 .gitignore
 
-# API Keys 和配置文件（保留模板）
-config.json
-config.template.json
-!config.template.json
-
-# 数据库文件
-*.db
-*.sqlite
-*.sqlite3
-!test.db
-
-# Python
+# === Python ===
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-venv/
 env/
+venv/
 ENV/
-.venv
-pip-log.txt
-pip-delete-this-directory.txt
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Node
-node_modules/
-npm-debug.log
-yarn-error.log
+# === 敏感配置（永远不要提交）===
+config.json
+.env
+*.local.json
+*.local.yaml
+local_config.py
+config.local.json
+config.local.yaml
 
-# n8n
-.n8n/
-n8n_local.json
+# === 数据库 ===
+*.db
+*.sqlite
+*.sqlite3
 
-# IDE
-.vscode/
+# === IDE ===
 .idea/
+.vscode/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
-Thumbs.db
-desktop.ini
 
-# 日志
+# === 日志 ===
 *.log
 logs/
 
-# 临时文件
+# === 临时文件 ===
 tmp/
 temp/
 *.tmp
 *.bak
 
-# 备份
-backup/
+# === 测试 ===
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# === 文档（可选）===
+# docs/_build/
+
+# === 备份 ===
 backups/
 *.zip
 *.tar.gz
-
-# 测试数据
-test_data/
-sample_data/
-!test.db
-
-# 本地覆盖配置
-override.json
-local_config.py

@@ -28,12 +28,18 @@ from pathlib import Path
 from typing import Optional, List, Any
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
 import os
 from dotenv import load_dotenv
+
+# 导入限流中间件
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 # 导入 Vanna
 import vanna as vn
@@ -61,6 +67,13 @@ app = FastAPI(
     description="Text2SQL 查询接口 - 支持 Vanna AI 和 LLM 双模式",
     version="1.1.0"
 )
+
+# 初始化限流器
+# 限制规则：默认 100 次/分钟，可自定义
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # 添加 CORS 中间件
 app.add_middleware(
@@ -305,7 +318,7 @@ async def startup_event():
 
 
 @app.get("/")
-async def root():
+async def root(request: Request):
     """健康检查"""
     return {
         "status": "ok",
@@ -317,7 +330,7 @@ async def root():
 
 
 @app.get("/health")
-async def health():
+async def health(request: Request):
     """健康检查"""
     return {
         "status": "ok",
@@ -327,7 +340,8 @@ async def health():
 
 
 @app.post("/api/query", response_model=QueryResponse)
-async def query(request: QueryRequest):
+@limiter.limit("100/minute")
+async def query(request: Request, query_request: QueryRequest):
     """
     Text2SQL 查询接口
 
@@ -337,25 +351,25 @@ async def query(request: QueryRequest):
     - llm: 强制使用 LLM
 
     Args:
-        request: QueryRequest (question, mode, scenario, generate_chart)
+        query_request: QueryRequest (question, mode, scenario, generate_chart)
 
     Returns:
         QueryResponse (question, sql, data, columns, row_count, chart, mode, error)
     """
-    logger.info(f"收到查询请求：{request.question} (mode={request.mode})")
+    logger.info(f"收到查询请求：{query_request.question} (mode={query_request.mode})")
 
     try:
         # 确定数据库配置
-        if request.scenario in ["investment", "due_diligence"]:
+        if query_request.scenario in ["investment", "due_diligence"]:
             db_config = get_database_config('scenario_4_5')
         else:
             db_config = get_database_config('scenario_1_3')
 
         sql = ""
-        mode = request.mode
+        mode = query_request.mode
 
         # 模式选择
-        if request.mode == "auto":
+        if query_request.mode == "auto":
             # 自动选择：优先 Vanna，失败则使用 LLM
             if _vanna_initialized:
                 mode = "vanna"
@@ -367,7 +381,7 @@ async def query(request: QueryRequest):
                 raise HTTPException(status_code=503, detail="Vanna 服务未就绪")
 
             # 使用 Vanna 生成 SQL
-            sql = vn.generate_sql(request.question)
+            sql = vn.generate_sql(query_request.question)
             logger.info(f"Vanna 生成 SQL: {sql}")
 
         elif mode == "llm":
@@ -378,7 +392,7 @@ async def query(request: QueryRequest):
             schema = get_schema(db_config)
 
             # 使用 LLM 生成 SQL
-            sql = generate_sql_llm(request.question, schema)
+            sql = generate_sql_llm(query_request.question, schema)
             logger.info(f"LLM 生成 SQL: {sql}")
 
         # 执行 SQL
@@ -389,7 +403,7 @@ async def query(request: QueryRequest):
 
         # 生成图表（可选）
         chart = None
-        if request.generate_chart and result["data"]:
+        if query_request.generate_chart and result["data"]:
             try:
                 # 简单的 ASCII 图表
                 chart = generate_ascii_chart(result["data"], result["columns"])
@@ -397,7 +411,7 @@ async def query(request: QueryRequest):
                 logger.warning(f"图表生成失败：{e}")
 
         return QueryResponse(
-            question=request.question,
+            question=query_request.question,
             sql=sql,
             data=result["data"],
             columns=result["columns"],
@@ -411,7 +425,7 @@ async def query(request: QueryRequest):
     except Exception as e:
         logger.error(f"查询失败：{e}")
         return QueryResponse(
-            question=request.question,
+            question=query_request.question,
             sql="",
             data=[],
             columns=[],
@@ -422,37 +436,40 @@ async def query(request: QueryRequest):
 
 
 @app.post("/api/query/llm", response_model=QueryResponse)
-async def query_llm(request: QueryRequest):
+@limiter.limit("100/minute")
+async def query_llm(request: Request, query_request: QueryRequest):
     """
     使用 LLM 生成 SQL 并查询
 
     Args:
-        request: QueryRequest
+        query_request: QueryRequest
 
     Returns:
         QueryResponse
     """
-    request.mode = "llm"
-    return await query(request)
+    query_request.mode = "llm"
+    return await query(request, query_request)
 
 
 @app.post("/api/query/vanna", response_model=QueryResponse)
-async def query_vanna(request: QueryRequest):
+@limiter.limit("100/minute")
+async def query_vanna(request: Request, query_request: QueryRequest):
     """
     使用 Vanna 生成 SQL 并查询
 
     Args:
-        request: QueryRequest
+        query_request: QueryRequest
 
     Returns:
         QueryResponse
     """
-    request.mode = "vanna"
-    return await query(request)
+    query_request.mode = "vanna"
+    return await query(request, query_request)
 
 
 @app.post("/api/search", response_model=SearchResponse)
-async def search(request: SearchRequest):
+@limiter.limit("60/minute")
+async def search(request: Request, search_request: SearchRequest):
     """
     网络搜索接口
 
@@ -480,7 +497,8 @@ async def search(request: SearchRequest):
 
 
 @app.post("/api/export/excel", response_model=ExportResponse)
-async def export_excel(request: ExportRequest):
+@limiter.limit("30/minute")
+async def export_excel(request: Request, export_request: ExportRequest):
     """
     Excel 导出接口
 
@@ -518,7 +536,8 @@ async def export_excel(request: ExportRequest):
 
 
 @app.post("/api/export/word", response_model=ExportResponse)
-async def export_word(request: ExportRequest):
+@limiter.limit("30/minute")
+async def export_word(request: Request, export_request: ExportRequest):
     """
     Word 导出接口
 
@@ -556,7 +575,8 @@ async def export_word(request: ExportRequest):
 
 
 @app.post("/api/report", response_model=ReportResponse)
-async def generate_report(request: ReportRequest):
+@limiter.limit("30/minute")
+async def generate_report(request: Request, report_request: ReportRequest):
     """
     行业分析报告生成接口
 
@@ -618,7 +638,8 @@ async def generate_report(request: ReportRequest):
 
 
 @app.post("/api/train", response_model=TrainResponse)
-async def train_model(request: TrainRequest):
+@limiter.limit("20/minute")
+async def train_model(request: Request, train_request: TrainRequest):
     """
     训练 Vanna 模型
 
@@ -674,7 +695,8 @@ async def train_model(request: TrainRequest):
 
 
 @app.get("/api/schema")
-async def get_schema_endpoint():
+@limiter.limit("60/minute")
+async def get_schema_endpoint(request: Request):
     """获取数据库 Schema"""
     if not _vanna_initialized:
         raise HTTPException(status_code=503, detail="Vanna 服务未就绪")

@@ -632,9 +632,9 @@ python scripts/check_security.py
 
 ## 📞 联系方式
 
-- 项目主页：https://github.com/your-repo/text2sql
-- 问题反馈：https://github.com/your-repo/text2sql/issues
-- 邮箱：your-email@example.com
+- 项目主页：https://github.com/gaaiyun/text2sql-analysis
+- 问题反馈：https://github.com/gaaiyun/text2sql-analysis/issues
+- 作者：gaaiyun
 
 ---
 
@@ -650,6 +650,6 @@ python scripts/check_security.py
 
 **⭐ 如果这个项目对您有帮助，请给我们一个 Star！**
 
-Made with ❤️ by Text2SQL Team
+Made with ❤️ by gaaiyun
 
 </div>

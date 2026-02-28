@@ -1,69 +1,21 @@
 """
-网络搜索集成工具
-融合互联网信息检索，补充数据库查询结果
+网络搜索集成工具（脚本入口）
+融合互联网信息检索，补充数据库查询结果。
+实际实现见 src.utils.web_search；此处保留兼容接口。
 
 使用方法:
     python web_search.py "人工智能行业发展趋势"
 """
 
-from duckduckgo_search import DDGS
-import json
 import sys
+from pathlib import Path
 
-def search_web(query, max_results=5, time_range='year'):
-    """
-    搜索网络信息
-    
-    参数:
-        query: 搜索关键词
-        max_results: 最大结果数（默认 5）
-        time_range: 时间范围 ('day', 'week', 'month', 'year')
-    
-    返回:
-        list of dict，包含标题、摘要、链接
-    """
-    try:
-        with DDGS() as ddgs:
-            results = list(ddgs.text(
-                query, 
-                max_results=max_results,
-                timelimit=time_range
-            ))
-        
-        formatted_results = []
-        for r in results:
-            formatted_results.append({
-                'title': r.get('title', ''),
-                'snippet': r.get('body', ''),
-                'url': r.get('href', ''),
-                'source': r.get('href', '').split('/')[2] if r.get('href') else ''
-            })
-        
-        return formatted_results
-    except Exception as e:
-        print(f"❌ 搜索失败: {e}")
-        return []
+# 项目根目录
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
-def search_news(query, max_results=3):
-    """搜索新闻"""
-    try:
-        with DDGS() as ddgs:
-            results = list(ddgs.news(query, max_results=max_results))
-        
-        formatted_results = []
-        for r in results:
-            formatted_results.append({
-                'title': r.get('title', ''),
-                'snippet': r.get('body', ''),
-                'url': r.get('url', ''),
-                'date': r.get('date', ''),
-                'source': r.get('source', '')
-            })
-        
-        return formatted_results
-    except Exception as e:
-        print(f"❌ 新闻搜索失败: {e}")
-        return []
+from src.utils.web_search import search as search_web, search_news, duckduckgo_search
 
 def enhance_analysis(db_data, search_query):
     """
@@ -76,7 +28,7 @@ def enhance_analysis(db_data, search_query):
     返回:
         dict 包含数据库数据 + 网络搜索结果 + 综合分析
     """
-    print(f"🔍 搜索: {search_query}")
+    print(f"[Search] {search_query}")
     
     # 执行网络搜索
     web_results = search_web(search_query, max_results=5)

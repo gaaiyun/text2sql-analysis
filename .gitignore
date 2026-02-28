@@ -28,11 +28,25 @@ wheels/
 # === 敏感配置（永远不要提交）===
 config.json
 .env
+.env.local
+.env.*.local
 *.local.json
 *.local.yaml
 local_config.py
 config.local.json
 config.local.yaml
+
+# === API 密钥和凭证 ===
+*_key.txt
+*_secret.txt
+*_password.txt
+credentials.json
+secrets.json
+auth.json
+
+# === 数据库备份 ===
+*.sql
+*.dump
 
 # === 数据库 ===
 *.db
@@ -70,3 +84,13 @@ htmlcov/
 backups/
 *.zip
 *.tar.gz
+
+# === 输出文件 ===
+output/
+demo/output/
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.docx
+*.xlsx

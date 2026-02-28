@@ -88,6 +88,16 @@ app.add_middleware(
 CONFIG_PATH = Path(__file__).parent / "config.json"
 
 # ============================================================================
+# Schema 和 Few-shot 示例路径
+# ============================================================================
+SCHEMA_DIR = Path(__file__).parent / "schema"
+SCHEMA_FILES = {
+    "scenario_1_3": SCHEMA_DIR / "gaaiyun_schema.md",
+    "scenario_4_5": SCHEMA_DIR / "gaaiyun_2_schema.md",
+}
+EXAMPLES_FILE = SCHEMA_DIR / "question_sql_examples.md"
+
+# ============================================================================
 # 请求/响应模型
 # ============================================================================
 
@@ -179,7 +189,10 @@ def init_vanna():
             config = json.load(f)
 
         vanna_config = config.get('vanna', {})
-        db_config = get_database_config('scenario_1_3')
+        db_config = get_db_config_with_fallback('scenario_1_3') if CONFIG_PATH.exists() else get_database_config('scenario_1_3')
+        if not db_config.get('host') or not db_config.get('database'):
+            logger.warning("数据库配置不完整，跳过 Vanna 连接")
+            return False
 
         # 初始化 Vanna
         vn.api_key = vanna_config.get('api_key', '')
@@ -219,6 +232,90 @@ def init_llm():
         return False
 
 
+def get_db_config_with_fallback(scenario: str) -> dict:
+    """获取数据库配置，若 Config 未提供则从 config.json 读取对应 scenario"""
+    cfg = get_database_config(scenario)
+    if cfg.get("database") and cfg.get("host") and cfg.get("host") != "localhost":
+        return {**cfg, "charset": "utf8mb4"}
+    if CONFIG_PATH.exists():
+        try:
+            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            db = (data.get("database") or {}).get(scenario, {})
+            if db.get("host"):
+                return {
+                    "host": db.get("host", "localhost"),
+                    "port": int(db.get("port", 3306)),
+                    "user": db.get("user", ""),
+                    "password": db.get("password", ""),
+                    "database": db.get("database", ""),
+                    "charset": "utf8mb4",
+                }
+        except Exception as e:
+            logger.warning(f"从 config.json 读取数据库配置失败: {e}")
+    return {**cfg, "charset": "utf8mb4"}
+
+
+def load_schema_for_scenario(scenario: str) -> str:
+    """加载场景对应的Schema文档"""
+    try:
+        if scenario in ["investment", "due_diligence"]:
+            schema_file = SCHEMA_FILES["scenario_4_5"]
+        else:
+            schema_file = SCHEMA_FILES["scenario_1_3"]
+        
+        if schema_file.exists():
+            with open(schema_file, 'r', encoding='utf-8') as f:
+                return f.read()
+        else:
+            logger.warning(f"Schema文件不存在: {schema_file}")
+            return ""
+    except Exception as e:
+        logger.error(f"加载Schema失败: {e}")
+        return ""
+
+
+def load_sql_examples(scenario: str, limit: int = 5) -> str:
+    """加载场景对应的Few-shot SQL示例"""
+    try:
+        if not EXAMPLES_FILE.exists():
+            logger.warning(f"示例文件不存在: {EXAMPLES_FILE}")
+            return ""
+        
+        with open(EXAMPLES_FILE, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 根据场景提取对应的示例
+        scenario_map = {
+            "data_insight": "场景1：数据洞察",
+            "regional": "场景2：地区产业分析",
+            "industry": "场景3：行业分析",
+            "investment": "场景4：招商清单",
+            "due_diligence": "场景5：企业尽调"
+        }
+        
+        scenario_title = scenario_map.get(scenario, "场景1：数据洞察")
+        
+        # 简单提取：找到场景标题后的内容
+        if scenario_title in content:
+            start = content.find(scenario_title)
+            # 找到下一个场景标题或文件结尾
+            next_scenario = content.find("## 场景", start + len(scenario_title))
+            if next_scenario == -1:
+                next_scenario = content.find("## 通用规则", start)
+            if next_scenario == -1:
+                next_scenario = len(content)
+            
+            examples = content[start:next_scenario]
+            # 限制示例数量（每个示例约100-200行）
+            return examples[:3000]  # 限制长度
+        
+        return ""
+    except Exception as e:
+        logger.error(f"加载SQL示例失败: {e}")
+        return ""
+
+
 def get_schema(db_config: dict, limit: int = 10) -> str:
     """获取数据库 Schema"""
     try:
@@ -245,31 +342,63 @@ def get_schema(db_config: dict, limit: int = 10) -> str:
         return f"ERROR: {e}"
 
 
-def generate_sql_llm(question: str, schema: str) -> str:
-    """使用 LLM 生成 SQL"""
-    prompt = f"""你是 SQL 专家。基于以下数据库表结构，为问题生成 MySQL 查询语句。
+def generate_sql_llm(question: str, schema: str, scenario: str = "data_insight") -> str:
+    """使用 LLM 生成 SQL（基于详细Schema + Few-shot示例）"""
+    
+    # 加载场景对应的Schema和Few-shot示例
+    detailed_schema = load_schema_for_scenario(scenario)
+    examples = load_sql_examples(scenario)
+    
+    # 如果加载失败，使用传入的schema
+    if not detailed_schema:
+        detailed_schema = schema[:3000]
+    
+    prompt = f"""你是SQL专家。根据Schema和示例生成准确的MySQL查询语句。
 
-表结构：
-{schema[:5000]}
+## Schema
+{detailed_schema[:2000]}
 
-问题：{question}
+## Few-shot示例
+{examples[:2000]}
 
-要求：
-1. 只返回 SQL 语句，不要解释
-2. SQL 必须是有效的 MySQL 语法
-3. 使用合适的 JOIN 和聚合函数
-4. 添加必要的 WHERE 条件
+## 问题
+{question}
+
+## 规则（必须遵守）
+1. 只返回一条SELECT语句，不要解释、不要Markdown代码块
+2. JOIN必须使用COLLATE: ON a.eid = b.eid COLLATE utf8mb4_unicode_ci
+3. 禁止SELECT *，明确指定字段
+4. 时间范围默认近3年: WHERE date >= DATE_SUB(CURDATE(), INTERVAL 3 YEAR)
+5. 结果限制: LIMIT 1000
+6. 单个SELECT语句，不允许多语句
+7. NULL处理: 使用COALESCE(field, default)
+8. 去重统计: 使用COUNT(DISTINCT eid)
+
+## 固化SOP（根据场景）
+场景1-数据洞察：
+1. 识别意图（融资趋势/行业分布/地区分析）
+2. 从对应表获取字段（融资数据.round_date, amount / 企业行业代码.name）
+3. 使用LEFT JOIN关联，必须COLLATE
+4. 按维度分组，计算COUNT/SUM/AVG
+5. ORDER BY + LIMIT
+
+场景4-招商清单：
+1. 从企业信息表获取基本信息（企业名称、注册资本、成立日期）
+2. LEFT JOIN专利信息、诉讼信息、招投标等表
+3. 计算各维度指标（专利数量、诉讼次数、投标次数）
+4. 使用CASE WHEN实现评分逻辑
+5. WHERE企业名称 IN (用户清单)
 
 SQL:"""
 
     response = _llm_client.chat.completions.create(
         model="qwen-plus",
         messages=[
-            {"role": "system", "content": "你是 SQL 专家，擅长生成准确的 MySQL 查询语句。"},
+            {"role": "system", "content": "你是SQL专家，擅长根据Schema和示例生成准确的MySQL查询语句。严格遵守规则，不要添加解释。"},
             {"role": "user", "content": prompt}
         ],
-        max_tokens=1000,
-        temperature=0.3
+        max_tokens=1500,
+        temperature=0.2
     )
 
     sql = response.choices[0].message.content.strip()
@@ -285,9 +414,13 @@ SQL:"""
 
 
 def execute_sql(sql: str, db_config: dict) -> dict:
-    """执行 SQL 并返回结果"""
+    """执行 SQL 并返回结果（含 charset 与错误详情）"""
     try:
-        conn = pymysql.connect(**db_config)
+        # 确保连接参数完整（charset 避免中文乱码）
+        conn_params = {k: v for k, v in db_config.items() if k in ("host", "port", "user", "password", "database", "charset")}
+        if "charset" not in conn_params:
+            conn_params["charset"] = "utf8mb4"
+        conn = pymysql.connect(**conn_params)
         cur = conn.cursor()
         cur.execute(sql)
         results = cur.fetchall()
@@ -359,41 +492,65 @@ async def query(request: Request, query_request: QueryRequest):
     logger.info(f"收到查询请求：{query_request.question} (mode={query_request.mode})")
 
     try:
-        # 确定数据库配置
+        # 确定数据库配置（支持从 config.json 回退）
         if query_request.scenario in ["investment", "due_diligence"]:
-            db_config = get_database_config('scenario_4_5')
+            db_config = get_db_config_with_fallback("scenario_4_5")
         else:
-            db_config = get_database_config('scenario_1_3')
+            db_config = get_db_config_with_fallback("scenario_1_3")
 
         sql = ""
         mode = query_request.mode
 
-        # 模式选择
+        # 模式选择：LLM为主，Vanna兜底
         if query_request.mode == "auto":
-            # 自动选择：优先 Vanna，失败则使用 LLM
-            if _vanna_initialized:
+            if _llm_client:
+                mode = "llm"
+            elif _vanna_initialized:
                 mode = "vanna"
             else:
-                mode = "llm"
+                raise HTTPException(status_code=503, detail="LLM和Vanna服务均未就绪")
 
-        if mode == "vanna":
+        # 1) 优先使用 LLM 生成 SQL
+        if mode == "llm":
+            if not _llm_client:
+                # LLM不可用，尝试Vanna兜底
+                if _vanna_initialized:
+                    mode = "vanna"
+                    logger.warning("LLM服务未就绪，切换到Vanna兜底")
+                else:
+                    raise HTTPException(status_code=503, detail="LLM服务未就绪")
+            else:
+                try:
+                    # 获取 Schema
+                    schema = get_schema(db_config)
+                    
+                    # 使用 LLM 生成 SQL（带Schema和Few-shot示例）
+                    sql = generate_sql_llm(query_request.question, schema, query_request.scenario)
+                    logger.info(f"LLM 生成 SQL: {sql[:100]}...")
+                except Exception as e:
+                    logger.error(f"LLM生成SQL失败: {e}")
+                    # LLM失败，尝试Vanna兜底
+                    if _vanna_initialized:
+                        mode = "vanna"
+                        logger.warning("LLM生成失败，切换到Vanna兜底")
+                    else:
+                        raise
+
+        # 2) Vanna 兜底
+        if not sql and mode == "vanna":
             if not _vanna_initialized:
                 raise HTTPException(status_code=503, detail="Vanna 服务未就绪")
 
-            # 使用 Vanna 生成 SQL
-            sql = vn.generate_sql(query_request.question)
-            logger.info(f"Vanna 生成 SQL: {sql}")
+            try:
+                # 使用 Vanna 生成 SQL
+                sql = vn.generate_sql(query_request.question)
+                logger.info(f"Vanna 生成 SQL: {sql[:100]}...")
+            except Exception as e:
+                logger.error(f"Vanna生成SQL失败: {e}")
+                raise HTTPException(status_code=500, detail=f"SQL生成失败: {str(e)}")
 
-        elif mode == "llm":
-            if not _llm_client:
-                raise HTTPException(status_code=503, detail="LLM 服务未就绪")
-
-            # 获取 Schema
-            schema = get_schema(db_config)
-
-            # 使用 LLM 生成 SQL
-            sql = generate_sql_llm(query_request.question, schema)
-            logger.info(f"LLM 生成 SQL: {sql}")
+        if not sql:
+            raise HTTPException(status_code=400, detail="未能生成 SQL，请重试或更换问题描述")
 
         # 执行 SQL
         result = execute_sql(sql, db_config)
@@ -423,15 +580,15 @@ async def query(request: Request, query_request: QueryRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"查询失败：{e}")
+        logger.error(f"查询失败：{e}", exc_info=True)
         return QueryResponse(
             question=query_request.question,
             sql="",
             data=[],
             columns=[],
             row_count=0,
-            mode=request.mode,
-            error=str(e)
+            mode=query_request.mode,
+            error=str(e),
         )
 
 
@@ -480,14 +637,16 @@ async def search(request: Request, search_request: SearchRequest):
         SearchResponse (query, results, count)
     """
     try:
-        from scripts.web_search import duckduckgo_search
+        from src.utils.web_search import search as web_search
 
-        results = duckduckgo_search(request.query, max_results=request.num_results)
-
+        results = web_search(
+            query=search_request.query,
+            max_results=search_request.num_results,
+        )
         return SearchResponse(
-            query=request.query,
+            query=search_request.query,
             results=results,
-            count=len(results)
+            count=len(results),
         )
     except ImportError:
         raise HTTPException(status_code=501, detail="网络搜索模块未安装")

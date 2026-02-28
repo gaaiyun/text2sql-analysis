@@ -34,8 +34,8 @@ CONFIG_PATH = Path(__file__).parent.parent / "config.json"
 class SQLRequest(BaseModel):
     """SQL 生成请求"""
     question: str
-    scenario: Optional[str] = "数据洞察"
-    session_id: Optional[str] = None
+    scenario: Optional[str] = "data_insight"
+    database: Optional[str] = "scenario_1_3"
 
 
 class SQLResponse(BaseModel):
@@ -54,44 +54,63 @@ class TrainRequest(BaseModel):
     document: Optional[str] = None
 
 
-# 全局 Vanna 实例
+# 全局配置
+_config = None
 _vanna_initialized = False
+_current_database = None
 
 
-def init_vanna():
-    """初始化 Vanna AI"""
-    global _vanna_initialized
-    
+def load_config():
+    """加载配置"""
+    global _config
     if not CONFIG_PATH.exists():
         logger.warning(f"配置文件不存在：{CONFIG_PATH}")
+        return None
+    with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+        _config = json.load(f)
+    return _config
+
+
+def init_vanna(database_key="scenario_1_3"):
+    """初始化 Vanna AI"""
+    global _vanna_initialized, _current_database
+    
+    if not _config:
+        load_config()
+    
+    if not _config:
         return False
     
     try:
-        with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-            config = json.load(f)
-        
-        vanna_config = config.get('vanna', {})
-        db_config = config.get('database', {}).get('scenario_1_3', {})
+        vanna_config = _config.get('vanna', {})
+        db_config = _config.get('database', {}).get(database_key, {})
         
         # 初始化 Vanna
         vn.api_key = vanna_config.get('api_key', '')
-        vn.org = vanna_config.get('org', 'default')
+        vn.org = vanna_config.get('org', 'gaaiyun')
         
         # 连接数据库
         vn.connect_to_mysql(
             host=db_config.get('host', 'localhost'),
             database=db_config.get('database', ''),
             user=db_config.get('user', ''),
-            password=db_config.get('password', '')
+            password=db_config.get('password', ''),
+            port=db_config.get('port', 3306)
         )
         
         _vanna_initialized = True
-        logger.info("Vanna AI 初始化成功")
+        _current_database = database_key
+        logger.info(f"Vanna AI 初始化成功，数据库：{database_key}")
         return True
         
     except Exception as e:
         logger.error(f"Vanna 初始化失败：{e}")
         return False
+
+
+def switch_database(database_key):
+    """切换数据库"""
+    return init_vanna(database_key)
 
 
 @app.on_event("startup")
@@ -102,19 +121,30 @@ async def startup_event():
 
 @app.get("/")
 async def root():
+    """根路径"""
+    return {
+        "service": "Vanna AI Text2SQL Service",
+        "version": "1.0.0",
+        "endpoints": ["/health", "/api/v0/generate_sql", "/api/v0/train"]
+    }
+
+
+@app.get("/health")
+async def health():
     """健康检查"""
     return {
-        "status": "ok",
-        "service": "Text2SQL API",
-        "version": "0.1.0",
-        "vanna_initialized": _vanna_initialized
+        "status": "ok" if _vanna_initialized else "initializing",
+        "service": "Vanna AI Service",
+        "version": "1.0.0",
+        "vanna_initialized": _vanna_initialized,
+        "current_database": _current_database
     }
 
 
 @app.post("/api/v0/generate_sql", response_model=SQLResponse)
 async def generate_sql(request: SQLRequest):
     """
-    生成 SQL 查询
+    生成 SQL 查询（n8n工作流调用）
     
     Args:
         request: SQL 生成请求
@@ -122,6 +152,11 @@ async def generate_sql(request: SQLRequest):
     Returns:
         SQLResponse: 生成的 SQL 语句
     """
+    # 根据场景切换数据库
+    if request.database and request.database != _current_database:
+        logger.info(f"切换数据库：{_current_database} -> {request.database}")
+        switch_database(request.database)
+    
     if not _vanna_initialized:
         logger.error("Vanna AI 未初始化")
         raise HTTPException(
@@ -130,12 +165,12 @@ async def generate_sql(request: SQLRequest):
         )
     
     try:
-        logger.info(f"收到 SQL 生成请求：{request.question}")
+        logger.info(f"收到 SQL 生成请求：{request.question} (场景: {request.scenario})")
         
         # 使用 Vanna 生成 SQL
         sql = vn.generate_sql(request.question)
         
-        logger.info(f"SQL 生成成功：{sql}")
+        logger.info(f"SQL 生成成功：{sql[:100]}...")
         
         return SQLResponse(
             sql=sql,

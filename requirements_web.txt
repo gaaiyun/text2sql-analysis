@@ -1,0 +1,30 @@
+# Text2SQL Web应用依赖
+# 基于requirements.txt，增加Web相关依赖
+
+# 核心依赖（从requirements.txt继承）
+openai>=1.0.0
+pymysql>=1.1.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+
+# 数据处理
+pandas>=2.0.0
+numpy>=1.24.0
+
+# 图表生成
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# 文档生成
+reportlab>=4.0.0
+python-docx>=1.0.0
+markdown>=3.5.0
+
+# 网络搜索
+duckduckgo-search>=4.0.0
+
+# Web界面（新增）
+gradio>=4.0.0
+
+# 可选：更好的性能
+uvicorn>=0.25.0

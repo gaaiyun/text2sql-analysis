@@ -1,63 +1,220 @@
-# Text2SQL Analysis System 🚀
+# Text2SQL 多工作流协作智能体系统
 
-> 基于 n8n 工作流 + Vanna AI 的智能文本转 SQL 数据分析系统
+<div align="center">
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![n8n](https://img.shields.io/badge/n8n-latest-ff6d5a.svg)](https://n8n.io/)
+**基于 LLM 的自然语言到 SQL 查询生成与智能报告系统**
+
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![阿里云百炼](https://img.shields.io/badge/阿里云百炼-Coding_Plan-orange.svg)](https://dashscope.console.aliyun.com/)
+
+[快速开始](#快速开始) • [功能特性](#功能特性) • [技术架构](#技术架构) • [使用文档](#使用文档) • [API文档](#api文档)
+
+</div>
 
 ---
 
 ## 📖 项目简介
 
-Text2SQL Analysis System 是一个智能数据分析系统，将自然语言查询自动转换为 SQL 语句，从数据库中获取数据并生成专业的分析报告。系统支持 5 大核心场景：
+Text2SQL 是一个企业级的自然语言到 SQL 查询生成系统，能够将用户的自然语言问题自动转换为 SQL 查询，执行查询后生成包含数据分析、图表可视化和网络信息补充的多模态智能报告。
 
-| 场景 | 描述 | 输出格式 |
-|------|------|---------|
-| 📊 数据洞察 | 数据库 + 网络 + 知识库融合分析 | Markdown/HTML |
-| 🌍 地区产业分析 | 地区经济/产业/企业/投资分析 | Markdown/HTML |
-| 🏭 行业分析 | 行业趋势/企业/技术/分布分析 | Markdown/HTML |
-| 📋 招商清单 | 企业评估 + 筛选优质企业 | Excel |
-| 📑 企业尽调报告 | 企业全维度调查 + 模板匹配 | Word/Markdown |
+**最新更新 (v2.2)**:
+- ✅ 专业化Web界面（移除emoji，现代化设计）
+- ✅ 图表优化（专业配色，高清输出，正确嵌入文档）
+- ✅ Word/PDF文档格式修复（正确解析Markdown）
+- ✅ 智能网络搜索（LLM提取关键词，时间范围优化）
+- ✅ SQL质量提升（清理双逗号，优化字段命名）
+
+### 核心价值
+
+- **零 SQL 门槛**：业务人员无需编写 SQL，用自然语言即可查询数据
+- **智能分析**：自动生成数据洞察、趋势分析和业务建议
+- **多模态输出**：支持 Markdown、PDF、Excel、Word 等多种格式
+- **企业级应用**：支持 5 大业务场景，覆盖数据洞察、产业分析、招商清单、企业尽调等
+
+### 应用场景
+
+| 场景 | 功能描述 | 输出格式 | 适用对象 |
+|------|---------|---------|---------|
+| **场景1：数据洞察** | 融资趋势、行业分布、地区分析等数据洞察 | Markdown + PDF + 图表 | 投资分析师、数据分析师 |
+| **场景2：地区产业分析** | 地区经济、主导产业、龙头企业、投资来源分析 | Markdown + PDF + 图表 | 政府部门、招商人员 |
+| **场景3：行业分析** | 行业趋势、技术方向、空间分布、企业生命周期 | Markdown + PDF + 图表 | 行业研究员、投资机构 |
+| **场景4：招商清单** | 企业多维度评估、优质企业筛选 | Excel | 招商部门、园区管理 |
+| **场景5：企业尽调** | 企业全面尽职调查报告 | Word | 投资机构、风控部门 |
 
 ---
 
-## 🏗️ 系统架构
+## ✨ 功能特性
+
+### 🎯 核心功能
+
+- **真正的 Text2SQL**
+  - 100% 动态生成 SQL（无硬编码）
+  - LLM 为主、Vanna AI 兜底的双引擎架构
+  - 基于完整 Schema 工程的高质量生成
+
+- **完整的报告流水线**
+  ```
+  自然语言问题 → SQL生成 → 执行查询 → 数据分析 → 图表生成 → 网络搜索 → 多模态报告
+  ```
+
+- **智能图表生成**
+  - 自动推断图表类型（折线图、柱状图、饼图、分组柱状图）
+  - 根据数据特征智能选择最佳可视化方式
+  - 支持自定义图表样式和配色
+
+- **网络信息补充**
+  - 自动搜索相关行业动态和新闻
+  - 补充最新的市场信息和政策解读
+  - 增强报告的时效性和完整性
+
+- **多模态输出**
+  - Markdown：适合在线查看和分享
+  - PDF：适合打印和存档
+  - Excel：适合数据分析和筛选
+  - Word：适合正式报告和文档
+
+### 🔧 技术特性
+
+- **Schema 工程**
+  - 完整的表结构、字段说明、关系定义
+  - Few-shot 示例库（25+ 标准 Question-SQL 配对）
+  - 单一事实来源，确保一致性
+
+- **专业图表生成**
+  - 现代化配色方案（专业蓝色系）
+  - 高清输出（300 DPI，适合打印）
+  - 自动推断最佳图表类型
+  - 支持柱状图、折线图、饼图、分组柱状图
+  - 图表正确嵌入Word和PDF文档
+
+- **智能网络搜索**
+  - LLM自动提取关键词
+  - 添加时间范围提升相关性
+  - 搜索结果融合到数据分析
+
+- **安全配置**
+  - 环境变量管理敏感信息
+  - 无明文密码和密钥
+  - 自动安全检查脚本
+
+- **高性能**
+  - 完整流程：10-15 秒
+  - SQL生成：2-5 秒
+  - 支持并发处理
+
+- **可扩展**
+  - 模块化设计，易于扩展新场景
+  - 支持自定义提示词和 SQL 模板
+  - 兼容多种 LLM 模型
+
+---
+
+## 🏗️ 技术架构
+
+### 系统架构图
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Text2SQL 报告生成系统                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────┐    ┌─────────┐    ┌─────────┐                │
-│  │ 用户输入 │ →  │ 任务分类 │ →  │ 数据批量 │                │
-│  │(自然语言)│    │(场景识别)│    │  获取   │                │
-│  └─────────┘    └─────────┘    └─────────┘                │
-│                        │                │                   │
-│                        ↓                ↓                   │
-│                  ┌─────────┐    ┌─────────┐                │
-│                  │ 知识库  │    │ 数据库  │                │
-│                  │ (规则)  │    │ (MySQL) │                │
-│                  └─────────┘    └─────────┘                │
-│                        │                │                   │
-│                        ↓                ↓                   │
-│  ┌─────────┐    ┌─────────┐    ┌─────────┐                │
-│  │Markdown │ ←  │ 集中处理 │ ←  │ 网络搜索 │                │
-│  │  输出   │    │(单 Agent)│    │ (可选)  │                │
-│  └─────────┘    └─────────┘    └─────────┘                │
-│                                                             │
+│                        用户层                                │
+│  Web界面 / API调用 / n8n工作流 / 命令行工具                  │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│                      API服务层                               │
+│  ┌──────────────┐              ┌──────────────┐            │
+│  │ API Server   │              │ Vanna Server │            │
+│  │ (8000端口)   │              │ (5000端口)   │            │
+│  │ LLM + Vanna  │              │ Vanna专用    │            │
+│  └──────────────┘              └──────────────┘            │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│                    核心处理层                                │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │ Text2SQL引擎 │  │ 数据分析模块 │  │ 图表生成模块 │     │
+│  │ LLM/Vanna   │  │ LLM分析     │  │ 自动推断     │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │ 网络搜索模块 │  │ 文档生成模块 │  │ Schema工程   │     │
+│  │ DuckDuckGo  │  │ MD/PDF/Excel │  │ 表结构/示例  │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│                      数据层                                  │
+│  ┌──────────────┐              ┌──────────────┐            │
+│  │ MySQL数据库  │              │ 阿里云百炼   │            │
+│  │ 场景1-3/4-5  │              │ LLM API     │            │
+│  └──────────────┘              └──────────────┘            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### 技术栈
 
-| 组件 | 技术选型 | 说明 |
-|------|---------|------|
-| **工作流引擎** | n8n | 可视化工作流编排 |
-| **Text2SQL** | Vanna AI | 训练式 SQL 生成 |
-| **LLM** | Qwen3.5 Plus (阿里云百炼) | 中文理解 + 低成本 |
-| **数据库** | MySQL | 企业数据仓库 |
-| **前端** | n8n Web UI / Streamlit | 交互式界面 |
+**后端框架**
+- Python 3.8+
+- FastAPI（API 服务）
+- Flask（Vanna 服务）
+
+**AI 模型**
+- 阿里云百炼 Coding Plan
+  - qwen3.5-plus（推荐，支持图片理解）
+  - kimi-k2.5（支持图片理解）
+  - glm-5、MiniMax-M2.5
+- Vanna AI（Text2SQL 兜底）
+
+**数据库**
+- MySQL 8.0+
+- PyMySQL（数据库连接）
+
+**数据处理与可视化**
+- Pandas（数据处理）
+- Matplotlib（图表生成）
+- Seaborn（高级可视化）
+
+**文档生成**
+- ReportLab（PDF 生成）
+- python-docx（Word 生成）
+- openpyxl（Excel 生成）
+- Markdown（文本格式）
+
+**其他工具**
+- DuckDuckGo（网络搜索）
+- n8n（工作流编排，可选）
+
+### SQL 生成策略
+
+**双引擎架构**：LLM 为主、Vanna 兜底
+
+```python
+def generate_sql(question, scenario):
+    # 1. 加载 Schema 和 Few-shot 示例
+    schema = load_schema(scenario)
+    examples = load_examples(scenario)
+    
+    # 2. LLM 生成（主力）
+    sql = llm_generate(question, schema, examples)
+    
+    # 3. 验证 SQL
+    if validate_sql(sql):
+        return sql
+    
+    # 4. Vanna 兜底
+    sql = vanna_generate(question)
+    
+    # 5. 再次验证
+    if validate_sql(sql):
+        return sql
+    
+    # 6. 返回错误
+    raise SQLGenerationError()
+```
+
+**优势**：
+- LLM 模式：基于详细 Schema + Few-shot，生成质量高
+- Vanna 兜底：预训练模型，响应快，保证可用性
+- 无硬编码：所有 SQL 均动态生成，灵活性强
 
 ---
 
@@ -65,247 +222,405 @@ Text2SQL Analysis System 是一个智能数据分析系统，将自然语言查�
 
 ### 前置要求
 
-- Python 3.12+
-- Node.js 18+
-- MySQL 数据库
-- n8n (自托管)
-- 阿里云百炼 API Key
+- Python 3.8 或更高版本
+- MySQL 8.0 或更高版本
+- 阿里云百炼 Coding Plan 订阅（[订阅地址](https://dashscope.console.aliyun.com/)）
 
-### 1. 克隆项目
+### 安装步骤
+
+#### 1. 克隆项目
 
 ```bash
-git clone https://github.com/gaaiyun/text2sql-analysis.git
-cd text2sql-analysis
+git clone https://github.com/your-repo/text2sql.git
+cd text2sql
 ```
 
-### 2. 安装依赖
+#### 2. 安装依赖
 
 ```bash
-# Python 依赖
 pip install -r requirements.txt
-
-# n8n (全局安装)
-npm install -g n8n
 ```
 
-### 3. 配置环境变量
-
-复制配置模板并填写你的凭证：
+#### 3. 配置环境变量
 
 ```bash
-cp config.template.json config.json
+# 复制环境变量模板
+cp .env.example .env
+
+# 编辑 .env 文件，填入真实配置
+# - DASHSCOPE_API_KEY: 阿里云百炼 API Key（格式：sk-sp-xxxxx）
+# - DB_PASSWORD_SCENARIO_1_3: 场景1-3数据库密码
+# - DB_PASSWORD_SCENARIO_4_5: 场景4-5数据库密码
 ```
 
-编辑 `config.json`：
+**重要**：`.env` 文件包含敏感信息，已在 `.gitignore` 中，不会被提交到 Git。
 
-```json
-{
-  "database": {
-    "host": "YOUR_DB_HOST",
-    "port": 3306,
-    "user": "YOUR_DB_USER",
-    "password": "YOUR_DB_PASSWORD",
-    "database": "YOUR_DB_NAME"
-  },
-  "bailian": {
-    "api_key": "YOUR_DASHSCOPE_API_KEY",
-    "base_url": "https://coding.dashscope.aliyuncs.com/v1",
-    "model": "qwen3.5-plus"
-  },
-  "vanna": {
-    "api_key": "YOUR_VANNA_API_KEY",
-    "org": "your-org"
-  }
-}
-```
-
-### 4. 导入 n8n 工作流
-
-1. 启动 n8n: `n8n start`
-2. 访问 http://localhost:5646
-3. 点击 **Settings → Import from File**
-4. 选择 `n8n_workflow_text2sql.json`
-
-### 5. 训练 Vanna AI
+#### 4. 验证配置
 
 ```bash
-python scripts/train_vanna.py
+# 测试数据库连接
+python scripts/test_db_simple.py
+
+# 测试完整功能（LLM + 数据库 + Text2SQL）
+python scripts/test_quick.py
 ```
 
-### 6. 启动服务
+#### 5. 启动服务
+
+**方式一：Web应用（推荐）**
 
 ```bash
-# 启动 Vanna API 服务
-python api/vanna_server.py
+# Windows
+python web_app.py
 
-# 启动 n8n
-n8n start
+# Linux/macOS
+python web_app.py
 ```
+
+Web应用启动后访问：http://localhost:7860
+
+**方式二：API服务**
+
+```bash
+# Windows
+scripts\deploy.bat
+
+# Linux/macOS
+bash scripts/deploy.sh
+```
+
+服务启动后：
+- API 服务：http://localhost:8000
+- Vanna 服务：http://localhost:5000
+- API 文档：http://localhost:8000/docs
 
 ---
 
-## 📁 项目结构
+## 📚 使用文档
 
+### Web应用使用（推荐）
+
+启动Web应用后，访问 http://localhost:7860
+
+**使用步骤**：
+1. 选择业务场景（场景1-5）
+2. 输入自然语言问题
+3. 点击"生成报告"
+4. 查看结果：
+   - SQL查询语句
+   - 查询结果数据
+   - 数据可视化图表
+   - AI数据分析
+   - 网络信息补充
+   - 下载报告（Markdown/PDF/Word）
+
+**示例问题**：
+- 场景1：分析2023-2024年融资趋势，按行业统计融资金额和融资数量
+- 场景2：分析广东省深圳市的产业分布，统计各行业企业数量
+- 场景3：分析科技行业近5年的发展趋势
+
+详细使用指南：[WEB_APP_GUIDE.md](WEB_APP_GUIDE.md)
+
+### API 调用示例
+
+#### Python 调用
+
+```python
+import requests
+
+# 简单查询
+response = requests.post(
+    "http://localhost:8000/api/query",
+    json={
+        "question": "分析2023-2024年融资趋势",
+        "scenario": "data_insight",
+        "mode": "auto"  # auto: 自动选择, llm: LLM模式, vanna: Vanna模式
+    }
+)
+
+result = response.json()
+print(f"生成的SQL: {result['sql']}")
+print(f"查询结果: {result['data']}")
 ```
-text2sql-analysis/
-├── README.md                    # 项目说明
-├── LICENSE                      # MIT 许可证
-├── .gitignore                   # Git 忽略文件
-├── config.template.json         # 配置模板（脱敏）
-├── requirements.txt             # Python 依赖
-├── n8n_workflow_text2sql.json   # n8n 工作流（可直接导入）
-│
-├── api/
-│   ├── vanna_server.py          # Vanna API 服务
-│   └── text2sql_api.py          # Text2SQL 接口
-│
-├── prompts/
-│   ├── scenario_1_data_insight.md       # 场景 1 提示词
-│   ├── scenario_2_regional_industry.md  # 场景 2 提示词
-│   ├── scenario_3_industry_analysis.md  # 场景 3 提示词
-│   ├── scenario_4_investment_list.md    # 场景 4 提示词
-│   └── scenario_5_due_diligence.md      # 场景 5 提示词
-│
-├── scripts/
-│   ├── train_vanna.py           # Vanna 训练脚本
-│   ├── extract_schema.py        # Schema 提取
-│   └── test_connection.py       # 数据库连接测试
-│
-├── docs/
-│   ├── RESEARCH.md              # 调研报告
-│   ├── VANNA_CONFIG.md          # Vanna 配置文档
-│   └── N8N_WORKFLOW_RESEARCH.md # n8n 工作流调研
-│
-└── tests/
-    ├── test_sql_generation.py   # SQL 生成测试
-    └── test_scenarios.py        # 场景测试
+
+#### cURL 调用
+
+```bash
+curl -X POST http://localhost:8000/api/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "分析融资趋势",
+    "scenario": "data_insight"
+  }'
 ```
 
----
+### Demo 示例
 
-## 📖 使用指南
+#### 场景1：数据洞察
 
-### 场景 1: 数据洞察
+```bash
+python demo/scenario_1_data_insight.py
+```
 
-**用户输入**: "分析近 3 年企业融资趋势"
+生成报告包含：
+- 生成的 SQL 查询
+- 数据概览表格
+- 趋势图表（自动推断类型）
+- LLM 数据分析与解读
+- 网络信息补充
+- 业务建议与结论
 
-**系统流程**:
-1. 识别场景 → 数据洞察
-2. 生成 SQL → 查询融资信息表
-3. 数据分析 → LLM 生成洞察
-4. 输出 → Markdown 报告
+输出文件：
+- `demo/output/scenario_1_data_insight_YYYYMMDD_HHMMSS.md`
+- `demo/output/scenario_1_data_insight_YYYYMMDD_HHMMSS.pdf`
+- `demo/output/scenario_1_data_insight_YYYYMMDD_HHMMSS.docx`
 
-### 场景 2: 地区产业分析
+#### 场景2-3：地区产业分析、行业分析
 
-**用户输入**: "分析北京市人工智能产业发展情况"
-
-**系统流程**:
-1. 识别场景 → 地区产业
-2. 生成 SQL → 查询北京 +AI 行业企业
-3. 多维度分析 → 经济/产业/企业/投资
-4. 输出 → 图文报告
-
-### 场景 3: 行业分析
-
-**用户输入**: "分析新能源汽车行业发展趋势"
-
-### 场景 4: 招商清单
-
-**用户输入**: "评估以下企业：[企业列表]"
-
-**输出**: Excel 格式，包含 8 个维度评分
-
-### 场景 5: 企业尽调报告
-
-**用户输入**: "生成 XX 企业尽调报告"
-
-**输出**: Word/Markdown 格式完整报告
+```bash
+python demo/scenario_2_regional_industry.py
+python demo/scenario_3_industry_analysis.py
+```
 
 ---
 
 ## 🔧 配置说明
 
-### 数据库配置
+### 环境变量配置
 
-系统支持两个数据库：
-
-| 场景 | 主机 | 端口 | 数据库 |
-|------|------|------|--------|
-| 场景 1-3 | 8.134.9.77 | 3306 | Gaaiyun |
-| 场景 4-5 | 8.134.9.77 | 3306 | gaaiyun_2 |
-
-### Vanna AI 配置
-
-Vanna AI 需要预先训练以理解数据库 Schema：
-
-```python
-import vanna as vn
-
-# 连接数据库
-vn.connect_to_mysql(
-    host='YOUR_DB_HOST',
-    database='YOUR_DB_NAME',
-    user='YOUR_DB_USER',
-    password='YOUR_DB_PASSWORD'
-)
-
-# 训练
-vn.train(ddl="CREATE TABLE ...")
-vn.train(document="表结构说明")
-vn.train(sql="SELECT ...")
-```
-
----
-
-## 🧪 测试
+`.env` 文件配置项：
 
 ```bash
-# 运行单元测试
-pytest tests/
+# 阿里云百炼 API
+DASHSCOPE_API_KEY=sk-sp-xxxxx  # Coding Plan 专属 API Key
+DASHSCOPE_BASE_URL=https://coding.dashscope.aliyuncs.com/v1
 
-# 测试数据库连接
-python scripts/test_connection.py
+# 数据库配置 - 场景 1-3
+DB_HOST_SCENARIO_1_3=your-host
+DB_PORT_SCENARIO_1_3=3306
+DB_NAME_SCENARIO_1_3=Gaaiyun
+DB_USER_SCENARIO_1_3=your-user
+DB_PASSWORD_SCENARIO_1_3=your-password
 
-# 测试 SQL 生成
-python tests/test_sql_generation.py
+# 数据库配置 - 场景 4-5
+DB_HOST_SCENARIO_4_5=your-host
+DB_PORT_SCENARIO_4_5=3306
+DB_NAME_SCENARIO_4_5=gaaiyun_2
+DB_USER_SCENARIO_4_5=your-user
+DB_PASSWORD_SCENARIO_4_5=your-password
+
+# 模型配置
+MODEL_NAME=qwen3.5-plus  # 推荐模型
+MODEL_TEMPERATURE=0.1
 ```
 
----
+### 支持的模型
 
-## 📊 性能优化建议
+**阿里云百炼 Coding Plan 支持的模型**：
 
-基于实际使用经验，系统采用以下优化策略：
+| 模型 | 特点 | 适用场景 |
+|------|------|---------|
+| qwen3.5-plus | 推荐，支持图片理解 | 通用场景 |
+| kimi-k2.5 | 支持图片理解 | 长文本处理 |
+| glm-5 | 高性能 | 复杂推理 |
+| MiniMax-M2.5 | 平衡性能 | 通用场景 |
 
-| 优化点 | 方案 | 效果 |
-|--------|------|------|
-| **Token 控制** | 批量获取→集中处理→分段输出 | 减少 60% token 消耗 |
-| **架构设计** | 单 Agent 集中处理 | 避免多分支冗余 |
-| **输出格式** | Markdown 优先 | 稳定性高，兼容性好 |
-| **Schema 处理** | 精简核心字段 | 避免 token 过载 |
-| **知识库使用** | 仅存规则，强制数据库查询 | 提高准确性 |
-
----
-
-## ⚠️ 注意事项
-
-1. **敏感信息保护**: 请勿将 `config.json` 等包含 API Key 的文件上传到公开仓库
-2. **数据库安全**: 生产环境请使用只读账号，限制查询权限
-3. **速率限制**: 大模型 API 有调用限制，建议添加重试机制
-4. **数据准确性**: SQL 生成后建议人工审核关键查询
+**切换模型**：修改 `.env` 文件中的 `MODEL_NAME` 参数。
 
 ---
 
-## 🙏 致谢
+## 📖 API 文档
 
-本项目参考和使用了以下优秀的开源项目：
+### 核心接口
 
-- **[n8n](https://github.com/n8n-io/n8n)** - 工作流自动化工具 (MIT License)
-- **[Vanna AI](https://github.com/vanna-ai/vanna)** - Text2SQL 框架 (MIT License)
-- **[LangChain](https://github.com/langchain-ai/langchain)** - LLM 应用框架 (MIT License)
-- **[阿里云百炼](https://bailian.console.aliyun.com/)** - 大模型服务平台
-- **[Qwen](https://github.com/QwenLM/Qwen)** - 通义千问大模型
+#### 1. 查询接口
 
-感谢这些优秀项目的开源贡献！✨
+**POST** `/api/query`
+
+生成 SQL 并执行查询。
+
+**请求参数**：
+```json
+{
+  "question": "分析2023年融资趋势",
+  "scenario": "data_insight",
+  "mode": "auto"
+}
+```
+
+**响应**：
+```json
+{
+  "sql": "SELECT ...",
+  "data": {
+    "columns": ["年份", "融资金额"],
+    "rows": [[2023, 1000000]]
+  },
+  "execution_time": 2.5
+}
+```
+
+#### 2. 报告接口
+
+**POST** `/api/report`
+
+生成完整的分析报告。
+
+**请求参数**：
+```json
+{
+  "question": "分析融资趋势",
+  "scenario": "data_insight",
+  "format": "markdown"
+}
+```
+
+**响应**：
+```json
+{
+  "report": "# 报告内容...",
+  "charts": ["chart1.png"],
+  "format": "markdown"
+}
+```
+
+完整 API 文档：http://localhost:8000/docs
+
+---
+
+## 🗂️ 项目结构
+
+```
+text2sql/
+├── web_app.py                 # Web应用主程序（推荐使用）
+├── api_server.py              # API服务（8000端口）
+├── api/
+│   └── vanna_server.py        # Vanna服务（5000端口）
+├── schema/                    # Schema工程（核心）
+│   ├── gaaiyun_schema.md      # 场景1-3表结构（9张表）
+│   ├── gaaiyun_2_schema.md    # 场景4-5表结构（20张表）
+│   └── question_sql_examples.md  # Few-shot示例（25+配对）
+├── demo/                      # Demo示例
+│   ├── text2sql_utils.py      # 核心工具函数
+│   ├── scenario_1_data_insight.py      # 场景1示例
+│   ├── scenario_2_regional_industry.py # 场景2示例
+│   ├── scenario_3_industry_analysis.py # 场景3示例
+│   └── output/                # Demo输出目录
+├── src/
+│   └── utils/                 # 核心工具模块
+│       ├── config.py          # 配置管理
+│       ├── chart_generator.py # 图表生成（专业样式）
+│       ├── web_search.py      # 网络搜索（智能关键词提取）
+│       └── document_generator.py  # 文档生成（MD/PDF/Word）
+├── scripts/                   # 工具脚本
+│   ├── deploy.bat/sh          # API服务部署脚本
+│   ├── start_web.bat/sh       # Web应用启动脚本
+│   ├── test_db_simple.py      # 数据库连接测试
+│   ├── test_quick.py          # 完整功能测试
+│   └── check_security.py      # 安全检查脚本
+├── docs/                      # 项目文档
+│   ├── SECURITY_CONFIG.md     # 安全配置指南
+│   ├── SECURITY_CHECKLIST.md  # 安全检查清单
+│   └── n8n_integration.md     # n8n工作流集成指南
+├── prompts/                   # 优化的提示词模板
+│   ├── scenario_1_data_insight_optimized.md
+│   └── scenario_4_investment_list_optimized.md
+├── .env                       # 本地配置（不提交到Git）
+├── .env.example               # 配置模板
+├── .gitignore                 # Git忽略规则
+├── requirements.txt           # Python依赖列表
+├── README.md                  # 项目说明文档
+├── WEB_APP_GUIDE.md          # Web应用使用指南
+├── TEST_RESULTS.md           # 测试报告
+└── FINAL_OPTIMIZATION.md     # 最终优化报告
+```
+
+### 核心文件说明
+
+**应用入口**：
+- `web_app.py` - Web界面应用（推荐，端口7860）
+- `api_server.py` - RESTful API服务（端口8000）
+
+**核心模块**：
+- `demo/text2sql_utils.py` - Text2SQL核心逻辑
+- `src/utils/` - 工具模块（图表、搜索、文档生成）
+
+**Schema工程**：
+- `schema/` - 数据库表结构和Few-shot示例
+
+**配置文件**：
+- `.env` - 本地环境变量（敏感信息，不提交）
+- `.env.example` - 配置模板（可提交）
+
+---
+
+## 🔒 安全说明
+
+### 重要提醒
+
+⚠️ **永远不要将 `.env` 文件提交到 Git**
+
+本项目使用环境变量管理敏感信息（API 密钥、数据库密码），确保安全性。
+
+### 安全检查
+
+提交代码前运行安全检查：
+
+```bash
+python scripts/check_security.py
+```
+
+### 安全最佳实践
+
+1. **配置管理**
+   - 使用 `.env` 文件存储敏感信息
+   - 使用 `Config` 类加载配置
+   - 不在代码中硬编码密码和密钥
+
+2. **Git 提交**
+   - 提交前运行 `check_security.py`
+   - 检查 `git diff` 内容
+   - 确认 `.env` 不在提交列表中
+
+3. **密钥管理**
+   - 定期更换 API 密钥
+   - 使用最小权限原则
+   - 不分享 `.env` 文件
+
+详细安全指南：[docs/SECURITY_CONFIG.md](docs/SECURITY_CONFIG.md)
+
+---
+
+## 📊 性能指标
+
+| 指标 | 数值 | 说明 |
+|------|------|------|
+| SQL 生成时间 | 2-5 秒 | LLM 模式 |
+| SQL 生成时间 | 1-3 秒 | Vanna 模式 |
+| 查询执行时间 | 0.5-2 秒 | 取决于数据量 |
+| 报告生成时间 | 5-10 秒 | 包含图表和网络搜索 |
+| 并发支持 | 10+ | 同时处理多个请求 |
+
+---
+
+## 🤝 贡献指南
+
+欢迎贡献代码、报告问题或提出建议！
+
+### 贡献流程
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启 Pull Request
+
+### 开发规范
+
+- 遵循 PEP 8 代码规范
+- 添加必要的注释和文档
+- 提交前运行安全检查
+- 编写单元测试
 
 ---
 
@@ -317,27 +632,24 @@ python tests/test_sql_generation.py
 
 ## 📞 联系方式
 
-- **GitHub**: [@gaaiyun](https://github.com/gaaiyun)
-- **项目地址**: https://github.com/gaaiyun/text2sql-analysis
+- 项目主页：https://github.com/your-repo/text2sql
+- 问题反馈：https://github.com/your-repo/text2sql/issues
+- 邮箱：your-email@example.com
 
 ---
 
-## 🗓️ 更新日志
+## 🙏 致谢
 
-### v0.1.0 (2026-02-26)
-- ✅ 初始版本发布
-- ✅ 支持 5 大核心场景
-- ✅ n8n 工作流集成
-- ✅ Vanna AI Text2SQL
-- ✅ 5 个场景提示词模板
-- ✅ 完整的文档和配置模板
+- [阿里云百炼](https://dashscope.console.aliyun.com/) - 提供 LLM API 服务
+- [Vanna AI](https://vanna.ai/) - Text2SQL 引擎
+- [n8n](https://n8n.io/) - 工作流编排工具
 
 ---
 
 <div align="center">
 
-**Made with ❤️ by 派蒙 + Gaaiyun**
+**⭐ 如果这个项目对您有帮助，请给我们一个 Star！**
 
-[⬆ 返回顶部](#text2sql-analysis-)
+Made with ❤️ by Text2SQL Team
 
 </div>

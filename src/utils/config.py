@@ -159,14 +159,14 @@ class Config:
         db_configs = {
             'scenario_1_3': {
                 'host': os.environ.get('DB_HOST_SCENARIO_1_3', os.environ.get('DB_HOST', 'localhost')),
-                'port': int(os.environ.get('DB_PORT', '3306')),
+                'port': int(os.environ.get('DB_PORT_SCENARIO_1_3', '3306')),
                 'user': os.environ.get('DB_USER_SCENARIO_1_3', os.environ.get('DB_USER', 'root')),
                 'password': os.environ.get('DB_PASSWORD_SCENARIO_1_3', os.environ.get('DB_PASSWORD', '')),
                 'database': os.environ.get('DB_NAME_SCENARIO_1_3', os.environ.get('DB_NAME', ''))
             },
             'scenario_4_5': {
                 'host': os.environ.get('DB_HOST_SCENARIO_4_5', os.environ.get('DB_HOST', 'localhost')),
-                'port': int(os.environ.get('DB_PORT', '3306')),
+                'port': int(os.environ.get('DB_PORT_SCENARIO_4_5', '3306')),
                 'user': os.environ.get('DB_USER_SCENARIO_4_5', os.environ.get('DB_USER', 'root')),
                 'password': os.environ.get('DB_PASSWORD_SCENARIO_4_5', os.environ.get('DB_PASSWORD', '')),
                 'database': os.environ.get('DB_NAME_SCENARIO_4_5', os.environ.get('DB_NAME', ''))

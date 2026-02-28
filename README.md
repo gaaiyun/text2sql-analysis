@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![阿里云百炼](https://img.shields.io/badge/阿里云百炼-Coding_Plan-orange.svg)](https://dashscope.console.aliyun.com/)
 
-[快速开始](#快速开始) • [功能特性](#功能特性) • [技术架构](#技术架构) • [使用文档](#使用文档) • [API文档](#api文档)
+[快速开始](#快速开始) • [功能特性](#功能特性) • [技术架构](#技术架构) • [使用文档](#使用文档) • [Agent升级](#agent升级) • [API文档](#api文档)
 
 </div>
 
@@ -220,79 +220,42 @@ def generate_sql(question, scenario):
 
 ## 🚀 快速开始
 
-### 前置要求
-
-- Python 3.8 或更高版本
-- MySQL 8.0 或更高版本
-- 阿里云百炼 Coding Plan 订阅（[订阅地址](https://dashscope.console.aliyun.com/)）
-
-### 安装步骤
-
-#### 1. 克隆项目
+### 一键启动
 
 ```bash
-git clone https://github.com/your-repo/text2sql.git
-cd text2sql
-```
+# 1. 克隆项目
+git clone https://github.com/gaaiyun/text2sql-analysis.git
+cd text2sql-analysis
 
-#### 2. 安装依赖
-
-```bash
+# 2. 安装依赖
 pip install -r requirements.txt
-```
 
-#### 3. 配置环境变量
+# 3. 配置环境变量（创建.env文件）
+DASHSCOPE_API_KEY=your_api_key_here
+MYSQL_HOST=localhost
+MYSQL_USER=root
+MYSQL_PASSWORD=your_password
+MYSQL_DATABASE=gaaiyun
 
-```bash
-# 复制环境变量模板
-cp .env.example .env
-
-# 编辑 .env 文件，填入真实配置
-# - DASHSCOPE_API_KEY: 阿里云百炼 API Key（格式：sk-sp-xxxxx）
-# - DB_PASSWORD_SCENARIO_1_3: 场景1-3数据库密码
-# - DB_PASSWORD_SCENARIO_4_5: 场景4-5数据库密码
-```
-
-**重要**：`.env` 文件包含敏感信息，已在 `.gitignore` 中，不会被提交到 Git。
-
-#### 4. 验证配置
-
-```bash
-# 测试数据库连接
-python scripts/test_db_simple.py
-
-# 测试完整功能（LLM + 数据库 + Text2SQL）
-python scripts/test_quick.py
-```
-
-#### 5. 启动服务
-
-**方式一：Web应用（推荐）**
-
-```bash
-# Windows
-python web_app.py
-
-# Linux/macOS
+# 4. 启动Web应用
 python web_app.py
 ```
 
-Web应用启动后访问：http://localhost:7860
+访问：http://localhost:7860
 
-**方式二：API服务**
+### 其他启动方式
 
+**API服务**
 ```bash
-# Windows
-scripts\deploy.bat
-
-# Linux/macOS
-bash scripts/deploy.sh
+python api_server.py  # http://localhost:8000/docs
 ```
 
-服务启动后：
-- API 服务：http://localhost:8000
-- Vanna 服务：http://localhost:5000
-- API 文档：http://localhost:8000/docs
+**命令行Demo**
+```bash
+python demo/demo_scenario_1.py
+```
+
+📖 **详细部署指南**：[QUICK_START.md](QUICK_START.md) - 包含环境准备、常见问题、目录结构等完整说明
 
 ---
 
@@ -627,6 +590,41 @@ python scripts/check_security.py
 ## 📄 许可证
 
 本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+
+---
+
+## 🚀 Agent升级
+
+### 下一代智能Agent系统
+
+我们正在将Text2SQL系统升级为具有**自主决策、反思、规划**能力的智能Agent，实现：
+
+**核心能力**
+- 🧠 **ReAct循环**：思考-行动-观察的自主决策
+- 🔄 **错误恢复**：SQL报错自动修复和智能重试
+- 🐍 **Python执行**：安全沙箱执行复杂计算
+- 💭 **反思能力**：质量评估和自我改进
+- 📋 **任务规划**：复杂问题自动分解
+- 🧠 **记忆系统**：短期和长期记忆管理
+- 🎨 **智能决策**：自主决定图表类型、是否搜索等
+- 📊 **多样化报告**：动态模板和丰富视觉元素
+
+**技术栈**
+- **LangGraph** - Agent框架和状态管理
+- **AgentRun** - Python代码安全沙箱
+- **ChromaDB** - 向量记忆存储
+- **LLM决策** - 智能工具选择和参数优化
+
+**实施计划**
+- Phase 1: 基础Agent能力（2周）
+- Phase 2: 错误处理与重试（1周）
+- Phase 3: Python代码执行（1周）
+- Phase 4: 记忆系统（1周）
+- Phase 5: 反思与规划（1周）
+- Phase 6: 报告多样化（1周）
+- Phase 7: 集成测试与优化（1周）
+
+📖 **详细方案**：[AGENT_UPGRADE.md](AGENT_UPGRADE.md)
 
 ---
 

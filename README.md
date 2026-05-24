@@ -18,12 +18,15 @@
 
 Text2SQL 是一个企业级的自然语言到 SQL 查询生成系统，能够将用户的自然语言问题自动转换为 SQL 查询，执行查询后生成包含数据分析、图表可视化和网络信息补充的多模态智能报告。
 
-**最新更新 (v2.2)**:
-- ✅ 专业化Web界面（移除emoji，现代化设计）
-- ✅ 图表优化（专业配色，高清输出，正确嵌入文档）
-- ✅ Word/PDF文档格式修复（正确解析Markdown）
-- ✅ 智能网络搜索（LLM提取关键词，时间范围优化）
-- ✅ SQL质量提升（清理双逗号，优化字段命名）
+**v2.3 安全 + 测试更新**：
+- 新增 `src/utils/safe_sql.py` —— schema-aware SQL 安全 + 自动改写：
+  白名单表 / 强制 SELECT-only / 自动 LIMIT / 多语句拒绝 / WITH CTE 支持
+- 新增 `tests/test_safe_sql.py` 38 个 pytest 覆盖（参考 OWASP / sqlmap 注入向量）
+- 修 `tests/test_sql_security.py` 的 broken import（`from utils.` →
+  `from src.utils.`），让 v1 的 43 个安全测试也能跑
+- AI meta 文档（AGENT_UPGRADE.md / TEST_RESULTS.md / CHANGELOG.md）归档到
+  `docs/legacy/`
+- 详见 [`docs/SECURITY.md`](docs/SECURITY.md)
 
 ### 核心价值
 

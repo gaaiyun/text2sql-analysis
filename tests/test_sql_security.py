@@ -11,7 +11,7 @@ import os
 # 添加父目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.sql_security import SQLValidator, validate_sql_query, sanitize_user_input
+from src.utils.sql_security import SQLValidator, validate_sql_query, sanitize_user_input
 
 
 class TestSQLValidator(unittest.TestCase):

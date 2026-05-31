@@ -5,15 +5,17 @@
 注意：数据库配置从环境变量或 config.json 加载
 """
 
-import pymysql
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import pymysql
 
 # 添加项目根目录到路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.utils.config import get_database_config
+
 
 def test_schema_validation():
     """验证 Schema 文件"""
@@ -29,7 +31,7 @@ def test_schema_validation():
     print("\n[Test 2.1] Check schema files exist")
     if schema1_path.exists():
         print(f"  [OK] schema_gaaiyun.md exists")
-        with open(schema1_path, 'r', encoding='utf-8') as f:
+        with open(schema1_path, "r", encoding="utf-8") as f:
             content = f.read()
             print(f"  File size: {len(content)} bytes")
     else:
@@ -37,7 +39,7 @@ def test_schema_validation():
 
     if schema2_path.exists():
         print(f"  [OK] schema_gaaiyun_2.md exists")
-        with open(schema2_path, 'r', encoding='utf-8') as f:
+        with open(schema2_path, "r", encoding="utf-8") as f:
             content = f.read()
             print(f"  File size: {len(content)} bytes")
     else:
@@ -46,20 +48,23 @@ def test_schema_validation():
     # 验证数据库实际表结构
     print("\n[Test 2.2] Verify database schema")
 
-    db1_config = get_database_config('scenario_1_3')
+    db1_config = get_database_config("scenario_1_3")
 
-    if not db1_config.get('host') or not db1_config.get('database'):
+    if not db1_config.get("host") or not db1_config.get("database"):
         print("  [FAIL] 数据库配置无效，请检查 .env 或 config.json")
         return False
 
     try:
         conn = pymysql.connect(**db1_config)
         cur = conn.cursor()
-        cur.execute('''
+        cur.execute(
+            """
             SELECT table_name, table_comment
             FROM information_schema.tables
             WHERE table_schema=%s
-        ''', (db1_config['database'],))
+        """,
+            (db1_config["database"],),
+        )
         tables = cur.fetchall()
         conn.close()
 
@@ -72,6 +77,7 @@ def test_schema_validation():
     except Exception as e:
         print(f"  [FAIL] Error: {e}")
         return False
+
 
 if __name__ == "__main__":
     test_schema_validation()

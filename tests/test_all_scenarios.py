@@ -7,24 +7,25 @@ Text2SQL 完整场景测试
 注意：API Key 和数据库配置从环境变量或 config.json 加载
 """
 
-from openai import OpenAI
-import pymysql
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
-import sys
+
+import pymysql
+from openai import OpenAI
 
 # 添加项目根目录到路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.utils.config import get_kiro_config, get_database_config
+from src.utils.config import get_database_config, get_kiro_config
 
 # ============ 配置（从环境变量加载） ============
 KIRO_CONFIG = get_kiro_config()
 
 DB_CONFIG = {
-    "scenario_1_3": get_database_config('scenario_1_3'),
-    "scenario_4_5": get_database_config('scenario_4_5')
+    "scenario_1_3": get_database_config("scenario_1_3"),
+    "scenario_4_5": get_database_config("scenario_4_5"),
 }
 
 # ============ 5 大场景测试问题 ============
@@ -34,37 +35,38 @@ TEST_SCENARIOS = [
         "name": "数据洞察",
         "question": "查询近 3 年企业融资趋势，按年份和融资轮次统计",
         "database": "scenario_1_3",
-        "expected_tables": ["投资事件", "融资信息"]
+        "expected_tables": ["投资事件", "融资信息"],
     },
     {
         "id": 2,
         "name": "地区产业分析",
         "question": "分析北京市人工智能产业发展情况，包括企业数量、注册资本、融资情况",
         "database": "scenario_1_3",
-        "expected_tables": ["企业基本信息", "企业行业分类"]
+        "expected_tables": ["企业基本信息", "企业行业分类"],
     },
     {
         "id": 3,
         "name": "行业分析",
         "question": "分析新能源汽车行业发展趋势，包括企业数量增长、融资轮次分布",
         "database": "scenario_1_3",
-        "expected_tables": ["企业行业分类", "投资事件"]
+        "expected_tables": ["企业行业分类", "投资事件"],
     },
     {
         "id": 4,
         "name": "招商清单",
         "question": "查询注册资本超过 1000 万的企业，包括企业名称、注册资本、成立时间、所属行业",
         "database": "scenario_4_5",
-        "expected_tables": ["企业信息"]
+        "expected_tables": ["企业信息"],
     },
     {
         "id": 5,
         "name": "企业尽调",
         "question": "查询企业的知识产权情况，包括专利数量、商标数量、软件著作权",
         "database": "scenario_4_5",
-        "expected_tables": ["知识产权"]
-    }
+        "expected_tables": ["知识产权"],
+    },
 ]
+
 
 # ============ 工具函数 ============
 def get_schema(db_config):
@@ -72,11 +74,14 @@ def get_schema(db_config):
     conn = pymysql.connect(**db_config)
     cur = conn.cursor()
 
-    cur.execute("""
+    cur.execute(
+        """
         SELECT table_name, table_comment
         FROM information_schema.tables
         WHERE table_schema = %s
-    """, (db_config["database"],))
+    """,
+        (db_config["database"],),
+    )
 
     tables = cur.fetchall()
 
@@ -90,6 +95,7 @@ def get_schema(db_config):
 
     conn.close()
     return "\n\n".join(schema)
+
 
 def generate_sql(client, question, schema):
     """使用 LLM 生成 SQL"""
@@ -113,11 +119,14 @@ SQL:"""
     response = client.chat.completions.create(
         model=KIRO_CONFIG["model"],
         messages=[
-            {"role": "system", "content": "你是 SQL 专家，擅长生成准确的 MySQL 查询语句。"},
-            {"role": "user", "content": prompt}
+            {
+                "role": "system",
+                "content": "你是 SQL 专家，擅长生成准确的 MySQL 查询语句。",
+            },
+            {"role": "user", "content": prompt},
         ],
         max_tokens=1000,
-        temperature=0.3
+        temperature=0.3,
     )
 
     sql = response.choices[0].message.content.strip()
@@ -131,6 +140,7 @@ SQL:"""
         sql = sql[:-3]
 
     return sql.strip()
+
 
 def test_sql(sql, db_config):
     """测试 SQL 执行"""
@@ -150,13 +160,11 @@ def test_sql(sql, db_config):
             "success": True,
             "row_count": len(results),
             "columns": columns,
-            "sample": results[:3] if results else []
+            "sample": results[:3] if results else [],
         }
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
+
 
 # ============ 主测试流程 ============
 def main():
@@ -165,20 +173,19 @@ def main():
     print("Text2SQL 完整场景测试")
     print("=" * 80)
     print(f"使用模型：{KIRO_CONFIG['model']}")
-    print(f"数据库：2 个 ({DB_CONFIG['scenario_1_3']['database']} + {DB_CONFIG['scenario_4_5']['database']})")
+    print(
+        f"数据库：2 个 ({DB_CONFIG['scenario_1_3']['database']} + {DB_CONFIG['scenario_4_5']['database']})"
+    )
     print(f"测试场景：5 个")
     print()
 
     # 验证配置
-    if not KIRO_CONFIG.get('api_key'):
+    if not KIRO_CONFIG.get("api_key"):
         print("[ERROR] KIRO_API_KEY 未设置，请在 .env 文件中配置")
         sys.exit(1)
 
     # 初始化 OpenAI 客户端
-    client = OpenAI(
-        base_url=KIRO_CONFIG["base_url"],
-        api_key=KIRO_CONFIG["api_key"]
-    )
+    client = OpenAI(base_url=KIRO_CONFIG["base_url"], api_key=KIRO_CONFIG["api_key"])
 
     results = []
 
@@ -204,12 +211,14 @@ def main():
             print(f"SQL: {sql[:200]}...")
         except Exception as e:
             print(f"[ERROR] SQL 生成失败：{e}")
-            results.append({
-                "scenario": scenario["name"],
-                "success": False,
-                "error": str(e),
-                "sql": None
-            })
+            results.append(
+                {
+                    "scenario": scenario["name"],
+                    "success": False,
+                    "error": str(e),
+                    "sql": None,
+                }
+            )
             continue
 
         # 3. 测试 SQL 执行
@@ -226,13 +235,15 @@ def main():
         else:
             print(f"[ERROR] SQL 执行失败：{test_result['error']}")
 
-        results.append({
-            "scenario": scenario["name"],
-            "success": test_result["success"],
-            "sql": sql,
-            "row_count": test_result.get("row_count", 0),
-            "error": test_result.get("error")
-        })
+        results.append(
+            {
+                "scenario": scenario["name"],
+                "success": test_result["success"],
+                "sql": sql,
+                "row_count": test_result.get("row_count", 0),
+                "error": test_result.get("error"),
+            }
+        )
 
         print()
 
@@ -254,7 +265,9 @@ def main():
     print("详细结果:")
     for r in results:
         status = "[OK]" if r["success"] else "[FAIL]"
-        print(f"  {status} {r['scenario']}: {'成功' if r['success'] else '失败'} - {r.get('row_count', 0)} 行")
+        print(
+            f"  {status} {r['scenario']}: {'成功' if r['success'] else '失败'} - {r.get('row_count', 0)} 行"
+        )
         if r.get("error"):
             print(f"     错误：{r['error'][:100]}")
 
@@ -266,7 +279,7 @@ def main():
         "success": success_count,
         "failed": total_count - success_count,
         "success_rate": f"{success_count/total_count*100:.1f}%",
-        "results": results
+        "results": results,
     }
 
     with open("test_results.json", "w", encoding="utf-8") as f:
@@ -278,6 +291,7 @@ def main():
     print("=" * 80)
     print("测试完成！")
     print("=" * 80)
+
 
 if __name__ == "__main__":
     main()

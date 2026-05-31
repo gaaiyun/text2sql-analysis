@@ -9,25 +9,26 @@ Vanna AI 配置脚本 - 使用 Kiro OpenAI 兼容 API
 """
 
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 # 添加项目根目录到路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.utils.config import get_kiro_config, get_database_config
+from src.utils.config import get_database_config, get_kiro_config
 
 # Kiro 配置（从环境变量加载）
 KIRO_CONFIG = get_kiro_config()
-KIRO_BASE_URL = KIRO_CONFIG['base_url']
-KIRO_API_KEY = KIRO_CONFIG['api_key']
-KIRO_MODEL = KIRO_CONFIG['model']
+KIRO_BASE_URL = KIRO_CONFIG["base_url"]
+KIRO_API_KEY = KIRO_CONFIG["api_key"]
+KIRO_MODEL = KIRO_CONFIG["model"]
 
 # 数据库配置（从环境变量加载）
 DB_CONFIG = {
-    'scenario_1_3': get_database_config('scenario_1_3'),
-    'scenario_4_5': get_database_config('scenario_4_5')
+    "scenario_1_3": get_database_config("scenario_1_3"),
+    "scenario_4_5": get_database_config("scenario_4_5"),
 }
+
 
 def check_installation():
     """检查必要的包是否已安装"""
@@ -37,11 +38,11 @@ def check_installation():
     print()
 
     required_packages = {
-        'vanna': 'Vanna AI 核心',
-        'openai': 'OpenAI 兼容 API',
-        'fastapi': 'FastAPI 服务',
-        'uvicorn': 'ASGI 服务器',
-        'pymysql': 'MySQL 驱动'
+        "vanna": "Vanna AI 核心",
+        "openai": "OpenAI 兼容 API",
+        "fastapi": "FastAPI 服务",
+        "uvicorn": "ASGI 服务器",
+        "pymysql": "MySQL 驱动",
     }
 
     missing = []
@@ -65,6 +66,7 @@ def check_installation():
     print()
     print("[OK] 所有必要的包已安装")
     return True
+
 
 def create_vanna_config():
     """创建 Vanna 配置文件"""
@@ -154,12 +156,13 @@ if __name__ == "__main__":
 '''
 
     config_path = Path("vanna_kiro_config.py")
-    with open(config_path, 'w', encoding='utf-8') as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         f.write(config_content)
 
     print(f"[OK] 配置文件已创建：{config_path}")
     print()
     return config_path
+
 
 def create_simple_test():
     """创建简单测试脚本"""
@@ -232,11 +235,12 @@ except Exception as e:
 '''
 
     test_path = Path("test_vanna_kiro.py")
-    with open(test_path, 'w', encoding='utf-8') as f:
+    with open(test_path, "w", encoding="utf-8") as f:
         f.write(test_content)
 
     print(f"[OK] 测试脚本已创建：{test_path}")
     print()
+
 
 def main():
     """主函数"""
@@ -280,6 +284,7 @@ def main():
     print("  5. 访问 Web 界面:")
     print("     http://localhost:8000")
     print()
+
 
 if __name__ == "__main__":
     main()

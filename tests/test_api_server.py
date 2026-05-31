@@ -3,8 +3,9 @@ API 服务测试
 
 测试 api_server.py 中的 API 端点
 """
-import unittest
+
 import sys
+import unittest
 from pathlib import Path
 
 # 添加项目根目录到路径
@@ -20,6 +21,7 @@ class TestAPIServer(unittest.TestCase):
             # 测试主要导入
             from fastapi import FastAPI
             from pydantic import BaseModel
+
             self.assertTrue(True)
         except ImportError as e:
             self.fail(f"API 服务器依赖导入失败：{e}")
@@ -27,11 +29,16 @@ class TestAPIServer(unittest.TestCase):
     def test_request_models(self):
         """测试请求模型"""
         from api_server import (
-            QueryRequest, QueryResponse,
-            SearchRequest, SearchResponse,
-            ExportRequest, ExportResponse,
-            ReportRequest, ReportResponse,
-            TrainRequest, TrainResponse
+            ExportRequest,
+            ExportResponse,
+            QueryRequest,
+            QueryResponse,
+            ReportRequest,
+            ReportResponse,
+            SearchRequest,
+            SearchResponse,
+            TrainRequest,
+            TrainResponse,
         )
 
         # 测试 QueryRequest
@@ -62,7 +69,7 @@ class TestAPIServer(unittest.TestCase):
             data=[{"id": 1, "name": "测试"}],
             columns=["id", "name"],
             row_count=1,
-            mode="llm"
+            mode="llm",
         )
         self.assertEqual(response.question, "测试")
         self.assertEqual(response.sql, "SELECT * FROM test")
@@ -76,7 +83,7 @@ class TestAPIServer(unittest.TestCase):
         data = [
             {"name": "企业 A", "value": 100},
             {"name": "企业 B", "value": 200},
-            {"name": "企业 C", "value": 150}
+            {"name": "企业 C", "value": 150},
         ]
         columns = ["name", "value"]
 
@@ -98,7 +105,7 @@ class TestAPIServer(unittest.TestCase):
 
         data = [
             {"name": "企业 A", "status": "存续"},
-            {"name": "企业 B", "status": "存续"}
+            {"name": "企业 B", "status": "存续"},
         ]
         columns = ["name", "status"]
 
@@ -112,7 +119,8 @@ class TestConfigIntegration(unittest.TestCase):
     def test_config_module_available(self):
         """测试配置模块可用"""
         try:
-            from src.utils.config import get_kiro_config, get_database_config
+            from src.utils.config import get_database_config, get_kiro_config
+
             self.assertTrue(True)
         except ImportError as e:
             self.fail(f"配置模块导入失败：{e}")
@@ -121,6 +129,7 @@ class TestConfigIntegration(unittest.TestCase):
         """测试 Vanna 模块可用"""
         try:
             import vanna as vn
+
             self.assertTrue(True)
         except ImportError as e:
             self.fail(f"Vanna 模块导入失败：{e}")
@@ -129,6 +138,7 @@ class TestConfigIntegration(unittest.TestCase):
         """测试 PyMySQL 可用"""
         try:
             import pymysql
+
             self.assertTrue(True)
         except ImportError as e:
             self.fail(f"PyMySQL 导入失败：{e}")
@@ -141,6 +151,7 @@ class TestSQLSecurityIntegration(unittest.TestCase):
         """测试 SQL 安全模块可用"""
         try:
             from src.utils.sql_security import validate_sql_query
+
             self.assertTrue(True)
         except ImportError as e:
             self.fail(f"SQL 安全模块导入失败：{e}")
@@ -152,7 +163,7 @@ class TestSQLSecurityIntegration(unittest.TestCase):
         dangerous_queries = [
             "DROP TABLE users",
             "DELETE FROM users WHERE 1=1",
-            "'; DROP TABLE users; --"
+            "'; DROP TABLE users; --",
         ]
 
         for query in dangerous_queries:
@@ -165,7 +176,7 @@ class TestSQLSecurityIntegration(unittest.TestCase):
 
         safe_queries = [
             "SELECT * FROM users WHERE id = 1",
-            "SELECT name, COUNT(*) FROM users GROUP BY name"
+            "SELECT name, COUNT(*) FROM users GROUP BY name",
         ]
 
         for query in safe_queries:
@@ -176,6 +187,7 @@ class TestSQLSecurityIntegration(unittest.TestCase):
 # =============================================================================
 # 测试运行器
 # =============================================================================
+
 
 def run_tests():
     """运行所有测试"""

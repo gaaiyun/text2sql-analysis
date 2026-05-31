@@ -32,6 +32,7 @@ class Text2SQLPipeline:
         self.db_config = self.config.get_database_config(scenario)
         self.api_key = self.config.get_api_key('dashscope')
         self.base_url = os.environ.get('DASHSCOPE_BASE_URL', 'https://coding.dashscope.aliyuncs.com/v1')
+        self.model = os.environ.get('MODEL_NAME', 'qwen3.5-plus')
         self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
         
     def load_schema(self) -> str:
@@ -95,7 +96,7 @@ LIMIT 1000
 """
         
         response = self.client.chat.completions.create(
-            model="qwen3.5-plus",
+            model=self.model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=600,
             temperature=0.1
@@ -225,7 +226,7 @@ SQL查询：
 - 使用markdown格式，用###标记小标题"""
         
         response = self.client.chat.completions.create(
-            model="qwen3.5-plus",
+            model=self.model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=1000,
             temperature=0.3
@@ -288,7 +289,7 @@ SQL查询：
         
         try:
             response = self.client.chat.completions.create(
-                model="qwen3.5-plus",
+                model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=50,
                 temperature=0.1

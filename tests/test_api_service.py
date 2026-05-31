@@ -15,8 +15,9 @@ def test_api_service():
     print("Test 10: API Service Readiness")
     print("=" * 60)
 
-    api_file = Path("C:\\Users\\gaaiy\\Desktop\\text2sql\\api\\vanna_server.py")
-    config_template = Path("C:\\Users\\gaaiy\\Desktop\\text2sql\\config.template.json")
+    repo_root = Path(__file__).resolve().parent.parent
+    api_file = repo_root / "api" / "vanna_server.py"
+    config_template = repo_root / "config.template.json"
 
     # 测试 10.1: API 文件存在性
     print("\n[Test 10.1] Check API server file")

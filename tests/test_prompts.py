@@ -14,7 +14,7 @@ def test_prompt_templates():
     print("Test 5-7: Prompt Template Validation")
     print("=" * 60)
 
-    prompts_dir = Path("C:\\Users\\gaaiy\\Desktop\\text2sql\\prompts")
+    prompts_dir = Path(__file__).resolve().parent.parent / "prompts"
 
     scenarios = {
         "scenario_1_data_insight.md": "场景 1: 数据洞察",

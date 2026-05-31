@@ -29,7 +29,7 @@ def test_vanna_sql_generation():
     import json
     from pathlib import Path
 
-    config_path = Path("C:\\Users\\gaaiy\\Desktop\\text2sql\\config.template.json")
+    config_path = Path(__file__).resolve().parent.parent / "config.template.json"
     if config_path.exists():
         print(f"  [OK] Config template exists")
         with open(config_path, "r", encoding="utf-8") as f:

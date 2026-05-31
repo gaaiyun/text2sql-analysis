@@ -2,9 +2,7 @@
 Text2SQL 完整场景测试
 测试 5 大场景的 SQL 生成能力
 
-使用模型：Kiro Claude Opus 4.6
-
-注意：API Key 和数据库配置从环境变量或 config.json 加载
+注意：API Key、模型和数据库配置从环境变量或 config.json 加载
 """
 
 import json

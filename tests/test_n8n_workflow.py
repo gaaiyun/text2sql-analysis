@@ -14,7 +14,8 @@ def test_n8n_workflow():
     print("Test 4: n8n Workflow Import Validation")
     print("=" * 60)
 
-    workflow_path = "C:\\Users\\gaaiy\\Desktop\\text2sql\\n8n_workflow_text2sql.json"
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    workflow_path = os.path.join(repo_root, "n8n_workflow_text2sql.json")
 
     # 测试 4.1: 文件存在性
     print("\n[Test 4.1] Check workflow file exists")

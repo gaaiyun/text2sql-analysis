@@ -1,6 +1,6 @@
 """
 Vanna AI 训练数据生成器
-使用 Claude Opus 4.6 生成高质量的 DDL 和示例查询
+调用配置的 LLM 生成高质量的 DDL 和示例查询
 
 使用方法:
     python scripts/generate_vanna_training.py
@@ -42,7 +42,7 @@ def load_schema(schema_path):
 
 
 def generate_training_data(schema, scenario_name):
-    """使用 Claude 生成训练数据"""
+    """调用配置的 LLM 生成训练数据"""
     print(f"\n[INFO] 正在为 {scenario_name} 生成训练数据...")
 
     prompt = f"""你是 Text2SQL 专家。基于以下数据库 Schema，生成 Vanna AI 训练数据。

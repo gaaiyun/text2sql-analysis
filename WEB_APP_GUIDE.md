@@ -6,7 +6,7 @@
 
 ```bash
 # 进入项目目录
-cd c:\Users\gaaiy\Desktop\text2sql
+cd /path/to/text2sql-analysis
 
 # 启动Web应用
 python web_app.py

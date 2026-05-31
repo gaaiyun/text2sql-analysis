@@ -147,4 +147,4 @@ text2sql/
 
 ---
 
-Made with ❤️ by gaaiyun
+Made by gaaiyun

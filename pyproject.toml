@@ -1,0 +1,4 @@
+# 工具配置：让 isort 与 black 的导入换行风格保持一致，避免二者互相改写
+# CI 中 black 与 isort 均会自动读取本文件
+[tool.isort]
+profile = "black"

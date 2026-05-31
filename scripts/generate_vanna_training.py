@@ -11,6 +11,7 @@ Vanna AI 训练数据生成器
 import json
 import sys
 from pathlib import Path
+
 import httpx
 
 # 添加项目根目录到路径
@@ -20,14 +21,15 @@ from src.utils.config import get_kiro_config
 
 # 配置（从环境变量加载）
 KIRO_CONFIG = get_kiro_config()
-KIRO_BASE_URL = KIRO_CONFIG['base_url']
-KIRO_API_KEY = KIRO_CONFIG['api_key']
-MODEL = KIRO_CONFIG['model']
+KIRO_BASE_URL = KIRO_CONFIG["base_url"]
+KIRO_API_KEY = KIRO_CONFIG["api_key"]
+MODEL = KIRO_CONFIG["model"]
 
 # Schema 文件 (使用绝对路径)
 SCRIPT_DIR = Path(__file__).parent
 SCHEMA_PATH_1 = SCRIPT_DIR.parent / "schema_gaaiyun.md"
 SCHEMA_PATH_2 = SCRIPT_DIR.parent / "schema_gaaiyun_2.md"
+
 
 def load_schema(schema_path):
     """加载 Schema 文件"""
@@ -35,8 +37,9 @@ def load_schema(schema_path):
         print(f"[ERROR] Schema 文件不存在：{schema_path}")
         return None
 
-    with open(schema_path, 'r', encoding='utf-8') as f:
+    with open(schema_path, "r", encoding="utf-8") as f:
         return f.read()
+
 
 def generate_training_data(schema, scenario_name):
     """使用 Claude 生成训练数据"""
@@ -74,27 +77,31 @@ Schema:
             f"{KIRO_BASE_URL}/chat/completions",
             headers={
                 "Authorization": f"Bearer {KIRO_API_KEY}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             },
             json={
                 "model": MODEL,
                 "messages": [
-                    {"role": "system", "content": "你是 Text2SQL 专家，擅长生成训练数据。"},
-                    {"role": "user", "content": prompt}
+                    {
+                        "role": "system",
+                        "content": "你是 Text2SQL 专家，擅长生成训练数据。",
+                    },
+                    {"role": "user", "content": prompt},
                 ],
                 "max_tokens": 4096,
-                "temperature": 0.7
+                "temperature": 0.7,
             },
-            timeout=120
+            timeout=120,
         )
 
         if response.status_code == 200:
             result = response.json()
-            content = result['choices'][0]['message']['content']
+            content = result["choices"][0]["message"]["content"]
 
             # 尝试解析 JSON
             import re
-            json_match = re.search(r'\{.*\}', content, re.DOTALL)
+
+            json_match = re.search(r"\{.*\}", content, re.DOTALL)
             if json_match:
                 training_data = json.loads(json_match.group())
                 print(f"[OK] 生成成功!")
@@ -114,11 +121,13 @@ Schema:
         print(f"[ERROR] 生成失败：{e}")
         return None
 
+
 def save_training_data(data, output_path):
     """保存训练数据"""
-    with open(output_path, 'w', encoding='utf-8') as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     print(f"[OK] 训练数据已保存到：{output_path}")
+
 
 def main():
     """主函数"""
@@ -153,6 +162,7 @@ def main():
     print("  1. 检查生成的训练数据")
     print("  2. 运行：python scripts/train_vanna.py")
     print("  3. 启动 API: python api/vanna_server.py")
+
 
 if __name__ == "__main__":
     main()

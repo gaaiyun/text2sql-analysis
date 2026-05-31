@@ -8,11 +8,13 @@
 
 注意：数据库配置通过环境变量或 config.json 提供
 """
-import pymysql
-from sqlalchemy import create_engine, text
+
 import json
 import sys
 from pathlib import Path
+
+import pymysql
+from sqlalchemy import create_engine, text
 
 # 添加项目根目录到路径
 sys.path.insert(0, str(Path(__file__).parent))
@@ -20,8 +22,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 from src.utils.config import get_database_config
 
 # 数据库配置（从环境变量/config.json 加载）
-DB_CONFIG_1 = get_database_config('scenario_1_3')
-DB_CONFIG_2 = get_database_config('scenario_4_5')
+DB_CONFIG_1 = get_database_config("scenario_1_3")
+DB_CONFIG_2 = get_database_config("scenario_4_5")
+
 
 def get_tables_schema(config):
     """获取数据库表结构信息"""
@@ -32,22 +35,25 @@ def get_tables_schema(config):
     try:
         # 连接数据库
         connection = pymysql.connect(
-            host=config['host'],
-            port=config['port'],
-            user=config['user'],
-            password=config['password'],
-            database=config['database']
+            host=config["host"],
+            port=config["port"],
+            user=config["user"],
+            password=config["password"],
+            database=config["database"],
         )
 
         cursor = connection.cursor()
 
         # 获取所有表名
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT TABLE_NAME, TABLE_COMMENT
             FROM information_schema.TABLES
             WHERE TABLE_SCHEMA = %s
             ORDER BY TABLE_NAME
-        """, (config['database'],))
+        """,
+            (config["database"],),
+        )
 
         tables = cursor.fetchall()
         print(f"找到 {len(tables)} 个表\n")
@@ -58,7 +64,8 @@ def get_tables_schema(config):
         for table_name, table_comment in tables:
             print(f"[TABLE] {table_name} - {table_comment or '无注释'}")
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     COLUMN_NAME,
                     COLUMN_TYPE,
@@ -69,26 +76,27 @@ def get_tables_schema(config):
                 FROM information_schema.COLUMNS
                 WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s
                 ORDER BY ORDINAL_POSITION
-            """, (config['database'], table_name))
+            """,
+                (config["database"], table_name),
+            )
 
             columns = cursor.fetchall()
 
-            schema_info[table_name] = {
-                'comment': table_comment,
-                'columns': []
-            }
+            schema_info[table_name] = {"comment": table_comment, "columns": []}
 
             for col in columns:
                 col_info = {
-                    'name': col[0],
-                    'type': col[1],
-                    'nullable': col[2],
-                    'key': col[3],
-                    'default': col[4],
-                    'comment': col[5]
+                    "name": col[0],
+                    "type": col[1],
+                    "nullable": col[2],
+                    "key": col[3],
+                    "default": col[4],
+                    "comment": col[5],
                 }
-                schema_info[table_name]['columns'].append(col_info)
-                print(f"  - {col[0]}: {col[1]} {'NULL' if col[2]=='YES' else 'NOT NULL'} {col[3] or ''} {col[5] or ''}")
+                schema_info[table_name]["columns"].append(col_info)
+                print(
+                    f"  - {col[0]}: {col[1]} {'NULL' if col[2]=='YES' else 'NOT NULL'} {col[3] or ''} {col[5] or ''}"
+                )
 
             print()
 
@@ -101,9 +109,10 @@ def get_tables_schema(config):
         print(f"[ERROR] 连接失败：{e}")
         return None
 
+
 def save_schema(schema_info, filename):
     """保存 Schema 到 Markdown 文件"""
-    with open(filename, 'w', encoding='utf-8') as f:
+    with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# 数据库 Schema 文档\n\n")
         f.write(f"**数据库**: {filename.split('_')[1]}\n")
         f.write(f"**生成时间**: 2026-02-26\n\n")
@@ -115,39 +124,44 @@ def save_schema(schema_info, filename):
             f.write("| 字段名 | 类型 | 可空 | 键 | 默认值 | 注释 |\n")
             f.write("|--------|------|------|-----|--------|------|\n")
 
-            for col in info['columns']:
-                key_str = col['key'] if col['key'] else ''
-                default_str = str(col['default']) if col['default'] is not None else 'NULL'
-                f.write(f"| {col['name']} | {col['type']} | {col['nullable']} | {key_str} | {default_str} | {col['comment'] or ''} |\n")
+            for col in info["columns"]:
+                key_str = col["key"] if col["key"] else ""
+                default_str = (
+                    str(col["default"]) if col["default"] is not None else "NULL"
+                )
+                f.write(
+                    f"| {col['name']} | {col['type']} | {col['nullable']} | {key_str} | {default_str} | {col['comment'] or ''} |\n"
+                )
 
             f.write(f"\n")
 
     print(f"[OK] Schema 已保存到：{filename}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     print("[START] 开始提取数据库 Schema...\n")
 
     # 验证配置
-    if not DB_CONFIG_1.get('host') or not DB_CONFIG_1.get('database'):
+    if not DB_CONFIG_1.get("host") or not DB_CONFIG_1.get("database"):
         print("[ERROR] 数据库配置无效，请检查 .env 或 config.json")
         sys.exit(1)
 
     # 提取场景 1-3 数据库
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("场景 1-3: 数据洞察/地区分析/行业分析")
-    print("="*60)
+    print("=" * 60)
     schema1 = get_tables_schema(DB_CONFIG_1)
     if schema1:
-        save_schema(schema1, 'schema_gaaiyun.md')
+        save_schema(schema1, "schema_gaaiyun.md")
 
     # 提取场景 4-5 数据库
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("场景 4-5: 招商清单/企业尽调")
-    print("="*60)
+    print("=" * 60)
     schema2 = get_tables_schema(DB_CONFIG_2)
     if schema2:
-        save_schema(schema2, 'schema_gaaiyun_2.md')
+        save_schema(schema2, "schema_gaaiyun_2.md")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("[OK] Schema 提取完成！")
-    print("="*60)
+    print("=" * 60)

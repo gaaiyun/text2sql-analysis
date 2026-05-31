@@ -13,14 +13,14 @@ SQL 注入安全测试模块
     python tests/test_sql_injection.py
 """
 
-import unittest
 import sys
+import unittest
 from pathlib import Path
 
 # 添加项目根目录到路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.utils.sql_security import SQLValidator, validate_sql_query, sanitize_user_input
+from src.utils.sql_security import SQLValidator, sanitize_user_input, validate_sql_query
 
 
 class TestScenario1SafeQueries(unittest.TestCase):
@@ -273,7 +273,9 @@ class TestScenario5EdgeCases(unittest.TestCase):
 
     def test_very_long_query(self):
         """测试长查询"""
-        long_query = "SELECT * FROM users WHERE " + " AND ".join([f"id={i}" for i in range(100)])
+        long_query = "SELECT * FROM users WHERE " + " AND ".join(
+            [f"id={i}" for i in range(100)]
+        )
         is_safe, msg = self.validator.validate_query(long_query)
         # 长查询本身不应该被拒绝，除非包含危险内容
         # 这个测试用于验证不会因为长度而崩溃
@@ -340,6 +342,7 @@ class TestConvenienceFunctions(unittest.TestCase):
 # 测试运行器
 # =============================================================================
 
+
 def run_tests():
     """运行所有测试"""
     print("=" * 80)
@@ -373,7 +376,11 @@ def run_tests():
     print(f"失败：{len(result.failures)}")
     print(f"错误：{len(result.errors)}")
 
-    success_rate = (result.testsRun - len(result.failures) - len(result.errors)) / result.testsRun * 100
+    success_rate = (
+        (result.testsRun - len(result.failures) - len(result.errors))
+        / result.testsRun
+        * 100
+    )
     print(f"成功率：{success_rate:.1f}%")
 
     if result.failures:

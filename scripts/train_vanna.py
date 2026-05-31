@@ -7,10 +7,11 @@ Vanna AI 训练脚本
 """
 
 import json
-import pymysql
-from pathlib import Path
-import vanna as vn
 import logging
+from pathlib import Path
+
+import pymysql
+import vanna as vn
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,24 +21,24 @@ CONFIG_PATH = Path(__file__).parent.parent / "config.json"
 
 def load_config():
     """加载配置"""
-    with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def init_vanna(config, database_key):
     """初始化Vanna"""
-    vanna_config = config.get('vanna', {})
-    db_config = config.get('database', {}).get(database_key, {})
-    
-    vn.api_key = vanna_config.get('api_key', '')
-    vn.org = vanna_config.get('org', 'gaaiyun')
-    
+    vanna_config = config.get("vanna", {})
+    db_config = config.get("database", {}).get(database_key, {})
+
+    vn.api_key = vanna_config.get("api_key", "")
+    vn.org = vanna_config.get("org", "gaaiyun")
+
     vn.connect_to_mysql(
-        host=db_config.get('host'),
-        database=db_config.get('database'),
-        user=db_config.get('user'),
-        password=db_config.get('password'),
-        port=db_config.get('port', 3306)
+        host=db_config.get("host"),
+        database=db_config.get("database"),
+        user=db_config.get("user"),
+        password=db_config.get("password"),
+        port=db_config.get("port", 3306),
     )
     logger.info(f"Vanna初始化成功: {database_key}")
 
@@ -56,7 +57,7 @@ SCENARIO_1_3_TRAINING = [
         FROM 融资数据
         WHERE round_date >= '2023-01-01' AND round_date < '2025-01-01'
         GROUP BY YEAR(round_date)
-        ORDER BY 年份"""
+        ORDER BY 年份""",
     },
     {
         "question": "查询近3年各行业融资情况",
@@ -68,7 +69,7 @@ SCENARIO_1_3_TRAINING = [
         WHERE round_date >= DATE_SUB(CURDATE(), INTERVAL 3 YEAR)
         GROUP BY industry
         ORDER BY 总金额 DESC
-        LIMIT 10"""
+        LIMIT 10""",
     },
     {
         "question": "统计各融资轮次分布",
@@ -79,7 +80,7 @@ SCENARIO_1_3_TRAINING = [
         FROM 融资数据
         WHERE round_date >= DATE_SUB(CURDATE(), INTERVAL 3 YEAR)
         GROUP BY round_name
-        ORDER BY 数量 DESC"""
+        ORDER BY 数量 DESC""",
     },
     {
         "question": "查询注册资本超过1000万的企业",
@@ -91,7 +92,7 @@ SCENARIO_1_3_TRAINING = [
         FROM 企业基本信息
         WHERE registered_capital >= 10000000
         ORDER BY registered_capital DESC
-        LIMIT 100"""
+        LIMIT 100""",
     },
     {
         "question": "分析投资事件的地域分布",
@@ -104,7 +105,7 @@ SCENARIO_1_3_TRAINING = [
         WHERE event_date >= DATE_SUB(CURDATE(), INTERVAL 3 YEAR)
         GROUP BY province, city
         ORDER BY 投资次数 DESC
-        LIMIT 20"""
+        LIMIT 20""",
     },
     # 场景2: 地区产业分析
     {
@@ -117,7 +118,7 @@ SCENARIO_1_3_TRAINING = [
         WHERE province = '北京市' OR city = '北京市'
         GROUP BY industry
         ORDER BY 企业数量 DESC
-        LIMIT 10"""
+        LIMIT 10""",
     },
     {
         "question": "查询上海市近3年新注册企业趋势",
@@ -129,7 +130,7 @@ SCENARIO_1_3_TRAINING = [
         WHERE (province = '上海市' OR city = '上海市')
             AND established_date >= DATE_SUB(CURDATE(), INTERVAL 3 YEAR)
         GROUP BY YEAR(established_date)
-        ORDER BY 年份"""
+        ORDER BY 年份""",
     },
     {
         "question": "统计深圳市获得投资的企业",
@@ -144,7 +145,7 @@ SCENARIO_1_3_TRAINING = [
             AND i.event_date >= DATE_SUB(CURDATE(), INTERVAL 3 YEAR)
         GROUP BY e.company_name, e.industry
         ORDER BY 总投资金额 DESC
-        LIMIT 20"""
+        LIMIT 20""",
     },
     # 场景3: 行业分析
     {
@@ -156,7 +157,7 @@ SCENARIO_1_3_TRAINING = [
         WHERE industry LIKE '%人工智能%' OR industry LIKE '%AI%'
         GROUP BY YEAR(established_date)
         ORDER BY 年份 DESC
-        LIMIT 10"""
+        LIMIT 10""",
     },
     {
         "question": "查询新能源汽车行业龙头企业",
@@ -169,7 +170,7 @@ SCENARIO_1_3_TRAINING = [
         FROM 企业基本信息
         WHERE industry LIKE '%新能源%' AND industry LIKE '%汽车%'
         ORDER BY registered_capital DESC
-        LIMIT 10"""
+        LIMIT 10""",
     },
     {
         "question": "统计生物医药行业融资情况",
@@ -181,8 +182,8 @@ SCENARIO_1_3_TRAINING = [
         FROM 融资数据
         WHERE industry LIKE '%生物%' OR industry LIKE '%医药%' OR industry LIKE '%医疗%'
         GROUP BY YEAR(round_date)
-        ORDER BY 年份 DESC"""
-    }
+        ORDER BY 年份 DESC""",
+    },
 ]
 
 # 场景4-5训练数据（gaaiyun_2数据库）
@@ -200,7 +201,7 @@ SCENARIO_4_5_TRAINING = [
         FROM 企业信息 e
         LEFT JOIN 知识产权 p ON e.eid = p.eid COLLATE utf8mb4_unicode_ci
         WHERE e.企业名称 IN ('企业A', '企业B', '企业C')
-        GROUP BY e.企业名称, e.注册资本, e.成立日期, e.企业状态"""
+        GROUP BY e.企业名称, e.注册资本, e.成立日期, e.企业状态""",
     },
     {
         "question": "查询企业的诉讼情况",
@@ -212,7 +213,7 @@ SCENARIO_4_5_TRAINING = [
         FROM 企业信息 e
         LEFT JOIN 诉讼信息 l ON e.eid = l.eid COLLATE utf8mb4_unicode_ci
         WHERE e.企业名称 IN ('企业A', '企业B')
-        GROUP BY e.企业名称"""
+        GROUP BY e.企业名称""",
     },
     {
         "question": "查询企业的招投标记录",
@@ -225,7 +226,7 @@ SCENARIO_4_5_TRAINING = [
         LEFT JOIN 招投标 b ON e.eid = b.eid COLLATE utf8mb4_unicode_ci
         WHERE e.企业名称 IN ('企业A', '企业B', '企业C')
             AND b.中标日期 >= DATE_SUB(CURDATE(), INTERVAL 3 YEAR)
-        GROUP BY e.企业名称"""
+        GROUP BY e.企业名称""",
     },
     {
         "question": "评估企业综合实力",
@@ -242,7 +243,7 @@ SCENARIO_4_5_TRAINING = [
         LEFT JOIN 招投标 b ON e.eid = b.eid COLLATE utf8mb4_unicode_ci
         WHERE e.企业名称 IN ('企业A', '企业B', '企业C')
         GROUP BY e.企业名称, e.注册资本, e.成立日期
-        LIMIT 100"""
+        LIMIT 100""",
     },
     # 场景5: 企业尽调
     {
@@ -258,7 +259,7 @@ SCENARIO_4_5_TRAINING = [
             经营范围
         FROM 企业信息
         WHERE 企业名称 = '目标企业'
-        LIMIT 1"""
+        LIMIT 1""",
     },
     {
         "question": "查询企业的股权结构",
@@ -269,7 +270,7 @@ SCENARIO_4_5_TRAINING = [
             实缴出资额
         FROM 股东信息
         WHERE eid = (SELECT eid FROM 企业信息 WHERE 企业名称 = '目标企业')
-        ORDER BY 持股比例 DESC"""
+        ORDER BY 持股比例 DESC""",
     },
     {
         "question": "查询企业的知识产权详情",
@@ -282,7 +283,7 @@ SCENARIO_4_5_TRAINING = [
         FROM 知识产权
         WHERE eid = (SELECT eid FROM 企业信息 WHERE 企业名称 = '目标企业')
         ORDER BY 申请日期 DESC
-        LIMIT 50"""
+        LIMIT 50""",
     },
     {
         "question": "查询企业的融资历史",
@@ -293,7 +294,7 @@ SCENARIO_4_5_TRAINING = [
             投资方
         FROM 融资信息
         WHERE eid = (SELECT eid FROM 企业信息 WHERE 企业名称 = '目标企业')
-        ORDER BY 融资日期 DESC"""
+        ORDER BY 融资日期 DESC""",
     },
     {
         "question": "查询企业的行政处罚记录",
@@ -304,7 +305,7 @@ SCENARIO_4_5_TRAINING = [
             处罚结果
         FROM 行政处罚
         WHERE eid = (SELECT eid FROM 企业信息 WHERE 企业名称 = '目标企业')
-        ORDER BY 处罚日期 DESC"""
+        ORDER BY 处罚日期 DESC""",
     },
     {
         "question": "查询企业的经营异常记录",
@@ -315,8 +316,8 @@ SCENARIO_4_5_TRAINING = [
             移出原因
         FROM 经营异常
         WHERE eid = (SELECT eid FROM 企业信息 WHERE 企业名称 = '目标企业')
-        ORDER BY 列入日期 DESC"""
-    }
+        ORDER BY 列入日期 DESC""",
+    },
 ]
 
 
@@ -325,24 +326,25 @@ def train_scenario_1_3(config):
     logger.info("=" * 60)
     logger.info("训练场景1-3（Gaaiyun数据库）")
     logger.info("=" * 60)
-    
+
     init_vanna(config, "scenario_1_3")
-    
+
     success = 0
     failed = 0
-    
+
     for i, item in enumerate(SCENARIO_1_3_TRAINING, 1):
         try:
-            status = vn.train(
-                question=item["question"],
-                sql=item["sql"]
+            status = vn.train(question=item["question"], sql=item["sql"])
+            logger.info(
+                f"[{i}/{len(SCENARIO_1_3_TRAINING)}] ✓ {item['question'][:30]}..."
             )
-            logger.info(f"[{i}/{len(SCENARIO_1_3_TRAINING)}] ✓ {item['question'][:30]}...")
             success += 1
         except Exception as e:
-            logger.error(f"[{i}/{len(SCENARIO_1_3_TRAINING)}] ✗ {item['question'][:30]}... - {e}")
+            logger.error(
+                f"[{i}/{len(SCENARIO_1_3_TRAINING)}] ✗ {item['question'][:30]}... - {e}"
+            )
             failed += 1
-    
+
     logger.info(f"\n场景1-3训练完成: 成功 {success}, 失败 {failed}")
 
 
@@ -351,24 +353,25 @@ def train_scenario_4_5(config):
     logger.info("\n" + "=" * 60)
     logger.info("训练场景4-5（gaaiyun_2数据库）")
     logger.info("=" * 60)
-    
+
     init_vanna(config, "scenario_4_5")
-    
+
     success = 0
     failed = 0
-    
+
     for i, item in enumerate(SCENARIO_4_5_TRAINING, 1):
         try:
-            status = vn.train(
-                question=item["question"],
-                sql=item["sql"]
+            status = vn.train(question=item["question"], sql=item["sql"])
+            logger.info(
+                f"[{i}/{len(SCENARIO_4_5_TRAINING)}] ✓ {item['question'][:30]}..."
             )
-            logger.info(f"[{i}/{len(SCENARIO_4_5_TRAINING)}] ✓ {item['question'][:30]}...")
             success += 1
         except Exception as e:
-            logger.error(f"[{i}/{len(SCENARIO_4_5_TRAINING)}] ✗ {item['question'][:30]}... - {e}")
+            logger.error(
+                f"[{i}/{len(SCENARIO_4_5_TRAINING)}] ✗ {item['question'][:30]}... - {e}"
+            )
             failed += 1
-    
+
     logger.info(f"\n场景4-5训练完成: 成功 {success}, 失败 {failed}")
 
 
@@ -377,15 +380,15 @@ def main():
     logger.info("=" * 60)
     logger.info("Vanna AI 训练脚本")
     logger.info("=" * 60)
-    
+
     config = load_config()
-    
+
     # 训练场景1-3
     train_scenario_1_3(config)
-    
+
     # 训练场景4-5
     train_scenario_4_5(config)
-    
+
     logger.info("\n" + "=" * 60)
     logger.info("训练完成！")
     logger.info("=" * 60)

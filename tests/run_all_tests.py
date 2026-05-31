@@ -1,8 +1,9 @@
 """
 运行所有单元测试并生成汇总报告
 """
-import unittest
+
 import sys
+import unittest
 from pathlib import Path
 
 # 添加项目根目录到路径
@@ -10,13 +11,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # 收集所有测试文件（单元测试）
 TEST_MODULES = [
-    'tests.test_sql_injection',      # 29 个测试
-    'tests.test_sql_security',       # 14 个测试
-    'tests.test_api_server',         # 12 个测试
-    'tests.test_edge_cases',         # 37 个测试
-    'tests.test_report',             # 9 个测试
-    'tests.test_prompts',            # 5 个测试
+    "tests.test_sql_injection",  # 29 个测试
+    "tests.test_sql_security",  # 14 个测试
+    "tests.test_api_server",  # 12 个测试
+    "tests.test_edge_cases",  # 37 个测试
+    "tests.test_report",  # 9 个测试
+    "tests.test_prompts",  # 5 个测试
 ]
+
 
 def run_all_tests():
     """运行所有单元测试"""
@@ -33,7 +35,7 @@ def run_all_tests():
     modules_loaded = []
     for module_name in TEST_MODULES:
         try:
-            module = __import__(module_name, fromlist=[''])
+            module = __import__(module_name, fromlist=[""])
             suite.addTests(loader.loadTestsFromModule(module))
             modules_loaded.append(module_name)
             print(f"已加载：{module_name}")
@@ -54,12 +56,20 @@ def run_all_tests():
     print("测试汇总报告")
     print("=" * 60)
     print(f"总测试数：{result.testsRun}")
-    print(f"成功：{result.testsRun - len(result.failures) - len(result.errors) - len(result.skipped)}")
+    print(
+        f"成功：{result.testsRun - len(result.failures) - len(result.errors) - len(result.skipped)}"
+    )
     print(f"失败：{len(result.failures)}")
     print(f"错误：{len(result.errors)}")
     print(f"跳过：{len(result.skipped)}")
 
-    success_rate = (result.testsRun - len(result.failures) - len(result.errors)) / result.testsRun * 100 if result.testsRun > 0 else 0
+    success_rate = (
+        (result.testsRun - len(result.failures) - len(result.errors))
+        / result.testsRun
+        * 100
+        if result.testsRun > 0
+        else 0
+    )
     print(f"成功率：{success_rate:.1f}%")
     print("=" * 60)
 
@@ -67,7 +77,11 @@ def run_all_tests():
     # 基于测试数量和覆盖的模块
     total_unit_tests = result.testsRun
     target_tests = 120  # 目标测试数（85% 覆盖率）
-    coverage_estimate = min(85 + (total_unit_tests - target_tests) * 0.1, 95) if total_unit_tests >= target_tests else 75 + (total_unit_tests / target_tests) * 10
+    coverage_estimate = (
+        min(85 + (total_unit_tests - target_tests) * 0.1, 95)
+        if total_unit_tests >= target_tests
+        else 75 + (total_unit_tests / target_tests) * 10
+    )
 
     print()
     print("覆盖率估算:")

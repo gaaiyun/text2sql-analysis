@@ -9,8 +9,9 @@ Vanna AI 训练脚本（简化版）
 """
 
 import sys
-import pymysql
 from pathlib import Path
+
+import pymysql
 
 # 添加项目根目录到路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -20,19 +21,21 @@ from src.utils.config import get_database_config
 # 尝试导入 vanna
 try:
     import vanna as vn
+
     print("[OK] Vanna 已导入")
 except ImportError:
     print("[ERROR] Vanna 未安装，请先安装：pip install vanna")
     sys.exit(1)
 
 # 配置（从环境变量加载）
-DB_CONFIG = get_database_config('scenario_1_3')
+DB_CONFIG = get_database_config("scenario_1_3")
+
 
 def extract_ddl():
     """从数据库提取 DDL"""
     print("\n[1/3] 提取 DDL...")
 
-    if not DB_CONFIG.get('host') or not DB_CONFIG.get('database'):
+    if not DB_CONFIG.get("host") or not DB_CONFIG.get("database"):
         print("  [ERROR] 数据库配置无效，请检查 .env 或 config.json")
         return []
 
@@ -41,11 +44,14 @@ def extract_ddl():
         cur = conn.cursor()
 
         # 获取所有表
-        cur.execute("""
+        cur.execute(
+            """
             SELECT table_name
             FROM information_schema.tables
             WHERE table_schema = %s
-        """, (DB_CONFIG['database'],))
+        """,
+            (DB_CONFIG["database"],),
+        )
         tables = [row[0] for row in cur.fetchall()]
         print(f"  找到 {len(tables)} 张表")
 
@@ -56,7 +62,7 @@ def extract_ddl():
             result = cur.fetchone()
             if result:
                 ddls.append(result[1])
-                print(f "  ✅ {table}")
+                print(f"  ✅ {table}")
 
         conn.close()
         return ddls
@@ -64,6 +70,7 @@ def extract_ddl():
     except Exception as e:
         print(f"  [ERROR] {e}")
         return []
+
 
 def train_with_ddl(ddls):
     """使用 DDL 训练 Vanna"""
@@ -82,6 +89,7 @@ def train_with_ddl(ddls):
         except Exception as e:
             print(f"  [ERROR] {e}")
 
+
 def generate_sample_questions():
     """生成示例问题"""
     print("\n[3/3] 示例问题（供参考）...")
@@ -91,11 +99,12 @@ def generate_sample_questions():
         "分析投资事件最多的行业",
         "统计各行业的融资轮次分布",
         "查询注册资本超过 1000 万的企业",
-        "查询有知识产权的企业列表"
+        "查询有知识产权的企业列表",
     ]
 
     for i, q in enumerate(questions, 1):
         print(f"  {i}. {q}")
+
 
 def main():
     """主函数"""
@@ -129,6 +138,7 @@ def main():
     print("  2. 配置 config.json 中的 vanna 部分")
     print("  3. 重新运行此脚本进行实际训练")
     print("  4. 启动 API: python api/vanna_server.py")
+
 
 if __name__ == "__main__":
     main()

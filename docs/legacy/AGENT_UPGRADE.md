@@ -1,4 +1,4 @@
-# 🤖 Text2SQL Agent化升级方案
+# Text2SQL Agent化升级方案
 
 > 基于2024-2025年最新研究，将Text2SQL系统升级为具有自主决策、反思、规划能力的智能Agent
 

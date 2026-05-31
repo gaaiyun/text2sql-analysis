@@ -16,30 +16,32 @@ Text2SQL 5 场景综合测试套件
 - DB_HOST, DB_NAME, DB_USER, DB_PASSWORD: 数据库配置
 """
 
-import unittest
-import sys
 import os
-from pathlib import Path
+import sys
+import unittest
 from datetime import datetime
+from pathlib import Path
 
 # 添加项目根目录到路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.utils.config import get_kiro_config, get_database_config
-from openai import OpenAI
 import pymysql
+from openai import OpenAI
 
+from src.utils.config import get_database_config, get_kiro_config
 
 # =============================================================================
 # 测试配置
 # =============================================================================
 
+
 class TestConfig:
     """测试配置类"""
+
     KIRO_CONFIG = get_kiro_config()
     DB_CONFIG = {
-        'scenario_1_3': get_database_config('scenario_1_3'),
-        'scenario_4_5': get_database_config('scenario_4_5')
+        "scenario_1_3": get_database_config("scenario_1_3"),
+        "scenario_4_5": get_database_config("scenario_4_5"),
     }
 
     # 5 大场景测试问题
@@ -73,7 +75,7 @@ class TestConfig:
             "name": "企业尽调",
             "question": "查询企业的知识产权情况，包括专利、商标、软件著作权数量",
             "database": "scenario_4_5",
-        }
+        },
     ]
 
 
@@ -81,17 +83,21 @@ class TestConfig:
 # 工具函数
 # =============================================================================
 
+
 def get_schema(db_config):
     """获取数据库 Schema"""
     try:
         conn = pymysql.connect(**db_config)
         cur = conn.cursor()
 
-        cur.execute("""
+        cur.execute(
+            """
             SELECT table_name, table_comment
             FROM information_schema.tables
             WHERE table_schema = %s
-        """, (db_config["database"],))
+        """,
+            (db_config["database"],),
+        )
 
         tables = cur.fetchall()
         schema = []
@@ -127,11 +133,14 @@ SQL:"""
     response = client.chat.completions.create(
         model=TestConfig.KIRO_CONFIG["model"],
         messages=[
-            {"role": "system", "content": "你是 SQL 专家，擅长生成准确的 MySQL 查询语句。"},
-            {"role": "user", "content": prompt}
+            {
+                "role": "system",
+                "content": "你是 SQL 专家，擅长生成准确的 MySQL 查询语句。",
+            },
+            {"role": "user", "content": prompt},
         ],
         max_tokens=1000,
-        temperature=0.3
+        temperature=0.3,
     )
 
     sql = response.choices[0].message.content.strip()
@@ -139,7 +148,7 @@ SQL:"""
     # 清理 Markdown 代码块
     for prefix in ["```sql", "```"]:
         if sql.startswith(prefix):
-            sql = sql[len(prefix):]
+            sql = sql[len(prefix) :]
     if sql.endswith("```"):
         sql = sql[:-3]
 
@@ -159,18 +168,16 @@ def execute_sql(sql, db_config):
             "success": True,
             "row_count": len(results),
             "columns": columns,
-            "data": results[:5]  # 只返回前 5 行
+            "data": results[:5],  # 只返回前 5 行
         }
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 # =============================================================================
 # 测试用例
 # =============================================================================
+
 
 class TestScenario1DataInsight(unittest.TestCase):
     """场景 1: 数据洞察测试"""
@@ -179,7 +186,7 @@ class TestScenario1DataInsight(unittest.TestCase):
     def setUpClass(cls):
         cls.client = OpenAI(
             base_url=TestConfig.KIRO_CONFIG["base_url"],
-            api_key=TestConfig.KIRO_CONFIG["api_key"]
+            api_key=TestConfig.KIRO_CONFIG["api_key"],
         )
         cls.db_config = TestConfig.DB_CONFIG["scenario_1_3"]
         cls.schema = get_schema(cls.db_config)
@@ -203,7 +210,7 @@ class TestScenario2RegionalAnalysis(unittest.TestCase):
     def setUpClass(cls):
         cls.client = OpenAI(
             base_url=TestConfig.KIRO_CONFIG["base_url"],
-            api_key=TestConfig.KIRO_CONFIG["api_key"]
+            api_key=TestConfig.KIRO_CONFIG["api_key"],
         )
         cls.db_config = TestConfig.DB_CONFIG["scenario_1_3"]
         cls.schema = get_schema(cls.db_config)
@@ -226,7 +233,7 @@ class TestScenario3IndustryAnalysis(unittest.TestCase):
     def setUpClass(cls):
         cls.client = OpenAI(
             base_url=TestConfig.KIRO_CONFIG["base_url"],
-            api_key=TestConfig.KIRO_CONFIG["api_key"]
+            api_key=TestConfig.KIRO_CONFIG["api_key"],
         )
         cls.db_config = TestConfig.DB_CONFIG["scenario_1_3"]
         cls.schema = get_schema(cls.db_config)
@@ -249,7 +256,7 @@ class TestScenario4InvestmentList(unittest.TestCase):
     def setUpClass(cls):
         cls.client = OpenAI(
             base_url=TestConfig.KIRO_CONFIG["base_url"],
-            api_key=TestConfig.KIRO_CONFIG["api_key"]
+            api_key=TestConfig.KIRO_CONFIG["api_key"],
         )
         cls.db_config = TestConfig.DB_CONFIG["scenario_4_5"]
         cls.schema = get_schema(cls.db_config)
@@ -273,7 +280,7 @@ class TestScenario5DueDiligence(unittest.TestCase):
     def setUpClass(cls):
         cls.client = OpenAI(
             base_url=TestConfig.KIRO_CONFIG["base_url"],
-            api_key=TestConfig.KIRO_CONFIG["api_key"]
+            api_key=TestConfig.KIRO_CONFIG["api_key"],
         )
         cls.db_config = TestConfig.DB_CONFIG["scenario_4_5"]
         cls.schema = get_schema(cls.db_config)
@@ -317,6 +324,7 @@ class TestDatabaseConnection(unittest.TestCase):
 # 测试运行器
 # =============================================================================
 
+
 def run_tests():
     """运行所有测试"""
     print("=" * 80)
@@ -328,7 +336,9 @@ def run_tests():
     print()
 
     # 检查配置
-    if not TestConfig.KIRO_CONFIG.get('api_key') or TestConfig.KIRO_CONFIG['api_key'].startswith('kp-your'):
+    if not TestConfig.KIRO_CONFIG.get("api_key") or TestConfig.KIRO_CONFIG[
+        "api_key"
+    ].startswith("kp-your"):
         print("[WARN] KIRO_API_KEY 未配置或使用默认值，测试可能失败")
     print()
 
@@ -357,7 +367,9 @@ def run_tests():
     print(f"成功：{result.testsRun - len(result.failures) - len(result.errors)}")
     print(f"失败：{len(result.failures)}")
     print(f"错误：{len(result.errors)}")
-    print(f"成功率：{(result.testsRun - len(result.failures) - len(result.errors)) / result.testsRun * 100:.1f}%")
+    print(
+        f"成功率：{(result.testsRun - len(result.failures) - len(result.errors)) / result.testsRun * 100:.1f}%"
+    )
 
     if result.failures:
         print("\n失败测试:")

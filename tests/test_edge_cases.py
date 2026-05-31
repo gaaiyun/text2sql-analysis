@@ -4,10 +4,11 @@
 测试 Text2SQL 项目的边界条件和错误处理能力
 覆盖 api_server.py, config.py, sql_security.py 的边界情况
 """
-import unittest
+
 import sys
+import unittest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 # 添加项目根目录到路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -16,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # =============================================================================
 # 1. API 服务器边界测试
 # =============================================================================
+
 
 class TestAPIBoundaryConditions(unittest.TestCase):
     """API 服务器边界条件测试"""
@@ -72,7 +74,7 @@ class TestAPIBoundaryConditions(unittest.TestCase):
             "regional",
             "industry",
             "investment",
-            "due_diligence"
+            "due_diligence",
         ]
 
         for scenario in valid_scenarios:
@@ -148,7 +150,7 @@ class TestAPIBoundaryConditions(unittest.TestCase):
             data=[{"id": 1}],
             columns=["id"],
             row_count=1,
-            mode="llm"
+            mode="llm",
         )
         self.assertEqual(response.row_count, 1)
         self.assertEqual(response.mode, "llm")
@@ -161,7 +163,7 @@ class TestAPIBoundaryConditions(unittest.TestCase):
             columns=[],
             row_count=0,
             mode="auto",
-            error="测试错误"
+            error="测试错误",
         )
         self.assertEqual(error_response.error, "测试错误")
 
@@ -169,6 +171,7 @@ class TestAPIBoundaryConditions(unittest.TestCase):
 # =============================================================================
 # 2. 配置模块边界测试
 # =============================================================================
+
 
 class TestConfigBoundaryConditions(unittest.TestCase):
     """配置模块边界条件测试"""
@@ -178,14 +181,14 @@ class TestConfigBoundaryConditions(unittest.TestCase):
         from src.utils.config import get_database_config
 
         # 场景 1-3
-        config1 = get_database_config('scenario_1_3')
+        config1 = get_database_config("scenario_1_3")
         self.assertIsInstance(config1, dict)
-        self.assertIn('host', config1)
+        self.assertIn("host", config1)
 
         # 场景 4-5
-        config2 = get_database_config('scenario_4_5')
+        config2 = get_database_config("scenario_4_5")
         self.assertIsInstance(config2, dict)
-        self.assertIn('host', config2)
+        self.assertIn("host", config2)
 
     def test_database_config_default(self):
         """测试默认数据库配置"""
@@ -194,7 +197,7 @@ class TestConfigBoundaryConditions(unittest.TestCase):
         # 未知场景应该返回默认配置
         # 注意：由于配置验证，可能会失败，这里只测试函数能调用
         try:
-            config = get_database_config('unknown_scenario')
+            config = get_database_config("unknown_scenario")
             self.assertIsInstance(config, dict)
         except (ValueError, KeyError):
             # 配置不存在时可能抛出异常，这是可接受的行为
@@ -206,9 +209,9 @@ class TestConfigBoundaryConditions(unittest.TestCase):
 
         config = get_kiro_config()
         self.assertIsInstance(config, dict)
-        self.assertIn('base_url', config)
-        self.assertIn('api_key', config)
-        self.assertIn('model', config)
+        self.assertIn("base_url", config)
+        self.assertIn("api_key", config)
+        self.assertIn("model", config)
 
     def test_config_with_missing_env_vars(self):
         """测试缺少环境变量时的配置"""
@@ -222,6 +225,7 @@ class TestConfigBoundaryConditions(unittest.TestCase):
 # =============================================================================
 # 3. SQL 安全边界测试
 # =============================================================================
+
 
 class TestSQLSecurityBoundaryConditions(unittest.TestCase):
     """SQL 安全边界条件测试"""
@@ -263,7 +267,7 @@ class TestSQLSecurityBoundaryConditions(unittest.TestCase):
             "drop table users",
             "DrOp TaBlE users",
             "DROP\tTABLE users",
-            "DROP\nTABLE users"
+            "DROP\nTABLE users",
         ]
 
         for query in dangerous_queries:
@@ -278,7 +282,7 @@ class TestSQLSecurityBoundaryConditions(unittest.TestCase):
             "SELECT * FROM users -- comment",
             "SELECT * FROM users # comment",
             "SELECT * FROM users /* comment */",
-            "SELECT * FROM users; -- comment"
+            "SELECT * FROM users; -- comment",
         ]
 
         for query in dangerous_queries:
@@ -313,7 +317,7 @@ class TestSQLSecurityBoundaryConditions(unittest.TestCase):
         dangerous_queries = [
             "SELECT * FROM users; DROP TABLE users;",
             "SELECT * FROM users; DELETE FROM users;",
-            "SELECT * FROM users; TRUNCATE TABLE users;"
+            "SELECT * FROM users; TRUNCATE TABLE users;",
         ]
 
         for query in dangerous_queries:
@@ -361,6 +365,7 @@ class TestSQLSecurityBoundaryConditions(unittest.TestCase):
 # 4. ASCII 图表边界测试
 # =============================================================================
 
+
 class TestASCIIChartBoundaryConditions(unittest.TestCase):
     """ASCII 图表边界条件测试"""
 
@@ -387,7 +392,7 @@ class TestASCIIChartBoundaryConditions(unittest.TestCase):
 
         data = [
             {"name": "企业 A", "value": 1000000},
-            {"name": "企业 B", "value": 2000000}
+            {"name": "企业 B", "value": 2000000},
         ]
         columns = ["name", "value"]
 
@@ -398,10 +403,7 @@ class TestASCIIChartBoundaryConditions(unittest.TestCase):
         """测试零值图表"""
         from api_server import generate_ascii_chart
 
-        data = [
-            {"name": "企业 A", "value": 0},
-            {"name": "企业 B", "value": 0}
-        ]
+        data = [{"name": "企业 A", "value": 0}, {"name": "企业 B", "value": 0}]
         columns = ["name", "value"]
 
         chart = generate_ascii_chart(data, columns)
@@ -411,10 +413,7 @@ class TestASCIIChartBoundaryConditions(unittest.TestCase):
         """测试负值图表"""
         from api_server import generate_ascii_chart
 
-        data = [
-            {"name": "企业 A", "value": -100},
-            {"name": "企业 B", "value": 200}
-        ]
+        data = [{"name": "企业 A", "value": -100}, {"name": "企业 B", "value": 200}]
         columns = ["name", "value"]
 
         chart = generate_ascii_chart(data, columns)
@@ -432,7 +431,7 @@ class TestASCIIChartBoundaryConditions(unittest.TestCase):
         # 应该包含图表标题
         self.assertIn("图表", chart)
         # 检查行数（标题 + 分隔线 + 10 行数据）
-        lines = chart.split('\n')
+        lines = chart.split("\n")
         self.assertLessEqual(len(lines), 15)  # 标题 + 分隔线 + 最多 10 行
         # 检查是否包含前 10 行的数据（企业 0-企业 9）
         self.assertIn("企业", chart)
@@ -445,7 +444,7 @@ class TestASCIIChartBoundaryConditions(unittest.TestCase):
 
         data = [
             {"name": "企业 A", "status": "存续"},
-            {"name": "企业 B", "status": "注销"}
+            {"name": "企业 B", "status": "注销"},
         ]
         columns = ["name", "status"]
 
@@ -457,10 +456,11 @@ class TestASCIIChartBoundaryConditions(unittest.TestCase):
 # 5. 错误处理集成测试
 # =============================================================================
 
+
 class TestErrorHandlingIntegration(unittest.TestCase):
     """错误处理集成测试"""
 
-    @patch('pymysql.connect')
+    @patch("pymysql.connect")
     def test_database_connection_error(self, mock_connect):
         """测试数据库连接错误处理"""
         mock_connect.side_effect = Exception("连接失败")
@@ -468,15 +468,15 @@ class TestErrorHandlingIntegration(unittest.TestCase):
         from api_server import execute_sql
 
         db_config = {
-            'host': 'localhost',
-            'database': 'test',
-            'user': 'test',
-            'password': 'test'
+            "host": "localhost",
+            "database": "test",
+            "user": "test",
+            "password": "test",
         }
 
         result = execute_sql("SELECT * FROM test", db_config)
-        self.assertFalse(result['success'])
-        self.assertIn("连接失败", result['error'])
+        self.assertFalse(result["success"])
+        self.assertIn("连接失败", result["error"])
 
     def test_sql_execution_error(self):
         """测试 SQL 执行错误处理"""
@@ -484,17 +484,17 @@ class TestErrorHandlingIntegration(unittest.TestCase):
 
         # 使用无效配置
         db_config = {
-            'host': 'invalid_host',
-            'database': 'invalid_db',
-            'user': 'invalid_user',
-            'password': 'invalid_password'
+            "host": "invalid_host",
+            "database": "invalid_db",
+            "user": "invalid_user",
+            "password": "invalid_password",
         }
 
         result = execute_sql("SELECT * FROM test", db_config)
-        self.assertFalse(result['success'])
-        self.assertIsNotNone(result['error'])
+        self.assertFalse(result["success"])
+        self.assertIsNotNone(result["error"])
 
-    @patch('src.utils.config.get_kiro_config')
+    @patch("src.utils.config.get_kiro_config")
     def test_llm_initialization_error(self, mock_config):
         """测试 LLM 初始化错误处理"""
         # 模拟配置抛出异常
@@ -502,7 +502,9 @@ class TestErrorHandlingIntegration(unittest.TestCase):
 
         # 重新导入以清除缓存
         import importlib
+
         import api_server
+
         importlib.reload(api_server)
 
         # 应该返回 False
@@ -513,6 +515,7 @@ class TestErrorHandlingIntegration(unittest.TestCase):
 # =============================================================================
 # 6. 网络搜索边界测试
 # =============================================================================
+
 
 class TestWebSearchBoundaryConditions(unittest.TestCase):
     """网络搜索边界条件测试"""
@@ -551,6 +554,7 @@ class TestWebSearchBoundaryConditions(unittest.TestCase):
 # =============================================================================
 # 测试运行器
 # =============================================================================
+
 
 def run_tests():
     """运行所有测试"""
@@ -594,7 +598,13 @@ def run_tests():
         for test, traceback in result.errors:
             print(f"  - {test}")
 
-    success_rate = (result.testsRun - len(result.failures) - len(result.errors)) / result.testsRun * 100 if result.testsRun > 0 else 0
+    success_rate = (
+        (result.testsRun - len(result.failures) - len(result.errors))
+        / result.testsRun
+        * 100
+        if result.testsRun > 0
+        else 0
+    )
     print(f"\n成功率：{success_rate:.1f}%")
 
     return result.wasSuccessful()

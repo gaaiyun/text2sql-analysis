@@ -30,9 +30,10 @@ from openai import OpenAI
 
 from src.utils.config import get_database_config, get_kiro_config
 
-
 RUN_LEGACY_EXTERNAL_TESTS = os.environ.get("RUN_LEGACY_EXTERNAL_TESTS") == "1"
-LEGACY_SKIP_REASON = "旧 Kiro/双库外部集成测试默认跳过；设置 RUN_LEGACY_EXTERNAL_TESTS=1 后运行"
+LEGACY_SKIP_REASON = (
+    "旧 Kiro/双库外部集成测试默认跳过；设置 RUN_LEGACY_EXTERNAL_TESTS=1 后运行"
+)
 
 # =============================================================================
 # 测试配置

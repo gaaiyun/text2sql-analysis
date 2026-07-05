@@ -27,7 +27,11 @@ def db_config_from_mapping(
         "port": int(port),
         "user": str(_get_value(source, f"DB_USER_{suffix}", "root")),
         "password": str(_get_value(source, f"DB_PASSWORD_{suffix}", "")),
-        "database": str(_get_value(source, f"DB_NAME_{suffix}", "znjz" if suffix == "SCENARIO_1_3" else "")),
+        "database": str(
+            _get_value(
+                source, f"DB_NAME_{suffix}", "znjz" if suffix == "SCENARIO_1_3" else ""
+            )
+        ),
         "charset": "utf8mb4",
     }
 
@@ -42,7 +46,9 @@ def build_agent_runtime(
 ) -> AgentRuntime:
     profile = get_database_profile(profile_name)
     settings = LLMSettings.from_mapping(source)
-    provider_cls = DeepSeekProvider if settings.provider == "deepseek" else VolcengineArkProvider
+    provider_cls = (
+        DeepSeekProvider if settings.provider == "deepseek" else VolcengineArkProvider
+    )
     provider = llm or provider_cls(settings=settings)
     return AgentRuntime(
         profile=profile,

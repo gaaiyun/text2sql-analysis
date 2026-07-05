@@ -25,7 +25,9 @@ def test_volcengine_provider_settings_from_env():
     assert settings.api_key == "test-key"
     assert settings.model == "glm-5.2"
 
-    provider = VolcengineArkProvider(settings=settings, client_factory=lambda **kwargs: kwargs)
+    provider = VolcengineArkProvider(
+        settings=settings, client_factory=lambda **kwargs: kwargs
+    )
     assert provider.client["base_url"] == settings.base_url
     assert provider.client["api_key"] == settings.api_key
 
@@ -45,7 +47,9 @@ def test_deepseek_provider_settings_from_env():
     assert settings.api_key == "test-key"
     assert settings.model == "deepseek-v4-flash"
 
-    provider = DeepSeekProvider(settings=settings, client_factory=lambda **kwargs: kwargs)
+    provider = DeepSeekProvider(
+        settings=settings, client_factory=lambda **kwargs: kwargs
+    )
     assert provider.client["base_url"] == settings.base_url
     assert provider.client["api_key"] == settings.api_key
 
@@ -80,6 +84,10 @@ def test_znjz_profile_exposes_schema_and_allowed_tables():
     assert "招投标" in profile.allowed_tables
     assert "企业详情" in profile.sql_guidance
     assert "禁止虚构字段" in profile.sql_guidance
+    assert "高频字段地图" in profile.sql_guidance
+    assert "容易写错的字段名" in profile.sql_guidance
+    assert "industry_name" in profile.sql_guidance
+    assert "company_name" in profile.sql_guidance
     assert "Text2SQL 必须遵守的查询规则" in profile.load_schema()
 
 
@@ -104,7 +112,9 @@ class CapturingLLM(FakeLLM):
 
     def complete(self, messages, *, temperature=0.1, max_tokens=1500):
         self.prompts.append(messages[-1]["content"])
-        return super().complete(messages, temperature=temperature, max_tokens=max_tokens)
+        return super().complete(
+            messages, temperature=temperature, max_tokens=max_tokens
+        )
 
 
 def test_agent_runtime_generates_safe_sql_and_executes_with_limit():
@@ -120,7 +130,9 @@ def test_agent_runtime_generates_safe_sql_and_executes_with_limit():
 
     runtime = AgentRuntime(
         profile=get_database_profile("znjz"),
-        llm=FakeLLM("SELECT `status`, COUNT(*) AS cnt FROM `企业基本信息` GROUP BY `status`"),
+        llm=FakeLLM(
+            "SELECT `status`, COUNT(*) AS cnt FROM `企业基本信息` GROUP BY `status`"
+        ),
         sql_executor=fake_executor,
     )
 
@@ -144,7 +156,9 @@ def test_generate_sql_prompt_contains_znjz_sql_guidance():
         sql_executor=fake_executor,
     )
 
-    runtime.query("查询一家企业的基本信息、融资、投资和招投标情况", scenario="due_diligence")
+    runtime.query(
+        "查询一家企业的基本信息、融资、投资和招投标情况", scenario="due_diligence"
+    )
 
     sql_prompt = llm.prompts[0]
     assert "禁止虚构字段" in sql_prompt
@@ -152,6 +166,10 @@ def test_generate_sql_prompt_contains_znjz_sql_guidance():
     assert "`融资数据`" in sql_prompt
     assert "`投资数据`" in sql_prompt
     assert "`招投标`" in sql_prompt
+    assert "高频字段地图" in sql_prompt
+    assert "不要使用 `industry_name`" in sql_prompt
+    assert "COUNT(DISTINCT `eid`)" in sql_prompt
+    assert "企业详情必须先聚合子查询再 JOIN" in sql_prompt
 
 
 def test_agent_runtime_rejects_non_whitelisted_tables_before_execution():
@@ -180,7 +198,9 @@ def test_agent_runtime_can_repair_sql_after_execution_error():
             prompt = messages[-1]["content"]
             if "只返回修复后的SQL" in prompt:
                 return "SELECT `industry_code`, COUNT(*) AS cnt FROM `企业行业代码` GROUP BY `industry_code`"
-            return super().complete(messages, temperature=temperature, max_tokens=max_tokens)
+            return super().complete(
+                messages, temperature=temperature, max_tokens=max_tokens
+            )
 
     def fake_executor(sql: str):
         attempts.append(sql)
@@ -194,7 +214,9 @@ def test_agent_runtime_can_repair_sql_after_execution_error():
 
     runtime = AgentRuntime(
         profile=get_database_profile("znjz"),
-        llm=RepairingLLM("SELECT `industry_name`, COUNT(*) AS cnt FROM `企业行业代码` GROUP BY `industry_name`"),
+        llm=RepairingLLM(
+            "SELECT `industry_name`, COUNT(*) AS cnt FROM `企业行业代码` GROUP BY `industry_name`"
+        ),
         sql_executor=fake_executor,
         max_retries=2,
     )
@@ -213,7 +235,9 @@ def test_agent_runtime_empty_result_report_discloses_no_data():
 
     runtime = AgentRuntime(
         profile=get_database_profile("znjz"),
-        llm=FakeLLM("SELECT `name`, COUNT(*) AS cnt FROM `企业行业代码` GROUP BY `name`"),
+        llm=FakeLLM(
+            "SELECT `name`, COUNT(*) AS cnt FROM `企业行业代码` GROUP BY `name`"
+        ),
         sql_executor=fake_executor,
     )
 
@@ -238,7 +262,9 @@ def test_agent_runtime_caps_single_company_detail_query_to_one_row():
         sql_executor=fake_executor,
     )
 
-    result = runtime.query("查询一家企业的基本信息、融资、投资和招投标情况", scenario="due_diligence")
+    result = runtime.query(
+        "查询一家企业的基本信息、融资、投资和招投标情况", scenario="due_diligence"
+    )
 
     assert result.success is True
     assert result.safe_sql.endswith("LIMIT 1")

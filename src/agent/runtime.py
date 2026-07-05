@@ -13,7 +13,6 @@ from src.utils.safe_sql import SafeSQLReport, enforce_safe_sql
 from .llm import VolcengineArkProvider
 from .profiles import DatabaseProfile, get_database_profile
 
-
 SQLExecutor = Callable[[str], dict[str, Any]]
 
 
@@ -107,9 +106,13 @@ class AgentRuntime:
             return self._query_graph(question, scenario=scenario)
         return self._query_linear(question, scenario=scenario)
 
-    def _query_linear(self, question: str, *, scenario: str = "data_insight") -> AgentResult:
+    def _query_linear(
+        self, question: str, *, scenario: str = "data_insight"
+    ) -> AgentResult:
         trace: list[dict[str, Any]] = []
-        result = AgentResult(question=question, scenario=scenario, success=False, trace=trace)
+        result = AgentResult(
+            question=question, scenario=scenario, success=False, trace=trace
+        )
 
         intent = self._classify_intent(question, scenario, trace)
         schema = self._retrieve_schema(trace)
@@ -143,19 +146,34 @@ class AgentRuntime:
                 return result
             except Exception as exc:
                 last_error = str(exc)
-                trace.append({"node": "execute_sql", "status": "error", "error": last_error, "attempt": attempt + 1})
+                trace.append(
+                    {
+                        "node": "execute_sql",
+                        "status": "error",
+                        "error": last_error,
+                        "attempt": attempt + 1,
+                    }
+                )
                 if attempt >= self.max_retries:
-                    result.error = f"SQL执行失败，已重试{self.max_retries}次：{last_error}"
+                    result.error = (
+                        f"SQL执行失败，已重试{self.max_retries}次：{last_error}"
+                    )
                     return result
-                sql = self._repair_sql(question, scenario, schema, sql, last_error, trace)
+                sql = self._repair_sql(
+                    question, scenario, schema, sql, last_error, trace
+                )
                 result.sql = sql
 
         result.error = last_error or "Agent执行失败"
         return result
 
-    def _query_graph(self, question: str, *, scenario: str = "data_insight") -> AgentResult:
+    def _query_graph(
+        self, question: str, *, scenario: str = "data_insight"
+    ) -> AgentResult:
         trace: list[dict[str, Any]] = []
-        result = AgentResult(question=question, scenario=scenario, success=False, trace=trace)
+        result = AgentResult(
+            question=question, scenario=scenario, success=False, trace=trace
+        )
         state = self._graph.invoke(
             {
                 "question": question,
@@ -183,7 +201,9 @@ class AgentRuntime:
         graph.add_node("execute_sql", self._graph_execute_sql)
         graph.add_node("repair_sql", self._graph_repair_sql)
         graph.add_node("profile_result", self._graph_profile_result)
-        graph.add_node("decide_chart_search_compute", self._graph_decide_chart_search_compute)
+        graph.add_node(
+            "decide_chart_search_compute", self._graph_decide_chart_search_compute
+        )
         graph.add_node("analyze", self._graph_analyze)
         graph.add_node("compose_report", self._graph_compose_report)
         graph.add_node("reflect_quality", self._graph_reflect_quality)
@@ -213,7 +233,9 @@ class AgentRuntime:
         return graph.compile()
 
     def _graph_classify_intent(self, state: AgentState) -> AgentState:
-        state["intent"] = self._classify_intent(state["question"], state["scenario"], state["trace"])
+        state["intent"] = self._classify_intent(
+            state["question"], state["scenario"], state["trace"]
+        )
         return state
 
     def _graph_retrieve_schema(self, state: AgentState) -> AgentState:
@@ -250,7 +272,9 @@ class AgentRuntime:
     def _graph_execute_sql(self, state: AgentState) -> AgentState:
         state["attempt"] = int(state.get("attempt", 0)) + 1
         try:
-            query_result = self._execute_sql(state["safety"].safe_sql or state["sql"], state["trace"])
+            query_result = self._execute_sql(
+                state["safety"].safe_sql or state["sql"], state["trace"]
+            )
             result = state["result"]
             result.columns = list(query_result.get("columns") or [])
             result.rows = [dict(row) for row in query_result.get("rows") or []]
@@ -272,7 +296,9 @@ class AgentRuntime:
                 }
             )
             if state["attempt"] > self.max_retries:
-                state["result"].error = f"SQL执行失败，已重试{self.max_retries}次：{last_error}"
+                state["result"].error = (
+                    f"SQL执行失败，已重试{self.max_retries}次：{last_error}"
+                )
         return state
 
     def _graph_after_execute(self, state: AgentState) -> str:
@@ -320,14 +346,18 @@ class AgentRuntime:
         state["result"].error = None
         return state
 
-    def _classify_intent(self, question: str, scenario: str, trace: list[dict[str, Any]]) -> dict[str, Any]:
+    def _classify_intent(
+        self, question: str, scenario: str, trace: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         intent = {"scenario": scenario, "needs_report": True}
         trace.append({"node": "classify_intent", "status": "ok", "intent": intent})
         return intent
 
     def _retrieve_schema(self, trace: list[dict[str, Any]]) -> str:
         schema = self.profile.load_schema()
-        trace.append({"node": "retrieve_schema", "status": "ok", "profile": self.profile.name})
+        trace.append(
+            {"node": "retrieve_schema", "status": "ok", "profile": self.profile.name}
+        )
         return schema
 
     def _generate_sql(
@@ -361,9 +391,13 @@ class AgentRuntime:
 6. 必须包含 LIMIT，除非是 COUNT/SUM 这类单行聚合。
 7. 输出前自检：所有字段必须存在于 Schema；所有表必须在白名单；不要把子查询别名当表；不要使用库中不存在的中文名称字段。
 """
-        sql = self.llm.complete([{"role": "user", "content": prompt}], temperature=0.1, max_tokens=1500)
+        sql = self.llm.complete(
+            [{"role": "user", "content": prompt}], temperature=0.1, max_tokens=1500
+        )
         trace.append({"node": "generate_sql", "status": "ok"})
-        return self._apply_question_sql_constraints(self._strip_markdown(sql), question, scenario)
+        return self._apply_question_sql_constraints(
+            self._strip_markdown(sql), question, scenario
+        )
 
     def _validate_sql(self, sql: str, trace: list[dict[str, Any]]) -> SafeSQLReport:
         report = enforce_safe_sql(
@@ -383,7 +417,13 @@ class AgentRuntime:
 
     def _execute_sql(self, sql: str, trace: list[dict[str, Any]]) -> dict[str, Any]:
         result = self.sql_executor(sql)
-        trace.append({"node": "execute_sql", "status": "ok", "row_count": result.get("row_count", 0)})
+        trace.append(
+            {
+                "node": "execute_sql",
+                "status": "ok",
+                "row_count": result.get("row_count", 0),
+            }
+        )
         return result
 
     def _repair_sql(
@@ -423,20 +463,47 @@ class AgentRuntime:
 
 只返回修复后的SQL，不要解释，不要Markdown代码块。
 """
-        repaired = self.llm.complete([{"role": "user", "content": prompt}], temperature=0.1, max_tokens=1500)
+        repaired = self.llm.complete(
+            [{"role": "user", "content": prompt}], temperature=0.1, max_tokens=1500
+        )
         trace.append({"node": "repair_sql", "status": "ok", "error": error})
-        return self._apply_question_sql_constraints(self._strip_markdown(repaired), question, scenario)
+        return self._apply_question_sql_constraints(
+            self._strip_markdown(repaired), question, scenario
+        )
 
     def _profile_result(self, result: AgentResult, trace: list[dict[str, Any]]) -> None:
-        trace.append({"node": "profile_result", "status": "ok", "rows": result.row_count, "columns": result.columns})
+        trace.append(
+            {
+                "node": "profile_result",
+                "status": "ok",
+                "rows": result.row_count,
+                "columns": result.columns,
+            }
+        )
 
-    def _decide_chart_search_compute(self, result: AgentResult, trace: list[dict[str, Any]]) -> None:
+    def _decide_chart_search_compute(
+        self, result: AgentResult, trace: list[dict[str, Any]]
+    ) -> None:
         result.chart = self._infer_chart(result)
-        trace.append({"node": "decide_chart_search_compute", "status": "ok", "chart": result.chart})
+        trace.append(
+            {
+                "node": "decide_chart_search_compute",
+                "status": "ok",
+                "chart": result.chart,
+            }
+        )
 
-    def _analyze(self, question: str, scenario: str, result: AgentResult, trace: list[dict[str, Any]]) -> str:
+    def _analyze(
+        self,
+        question: str,
+        scenario: str,
+        result: AgentResult,
+        trace: list[dict[str, Any]],
+    ) -> str:
         if result.row_count == 0:
-            analysis = "查询结果为空。请在报告中说明当前数据库没有返回对应数据，不要编造结论。"
+            analysis = (
+                "查询结果为空。请在报告中说明当前数据库没有返回对应数据，不要编造结论。"
+            )
             trace.append({"node": "analyze", "status": "empty"})
             return analysis
 
@@ -455,7 +522,9 @@ SQL：{result.safe_sql}
 2. 如果只看到预览数据，明确使用“当前返回结果显示”。
 3. 输出Markdown，包含“核心发现”和“分析局限性”。
 """
-        analysis = self.llm.complete([{"role": "user", "content": prompt}], temperature=0.2, max_tokens=1500)
+        analysis = self.llm.complete(
+            [{"role": "user", "content": prompt}], temperature=0.2, max_tokens=1500
+        )
         trace.append({"node": "analyze", "status": "ok"})
         analysis = analysis.strip()
         if not analysis:
@@ -492,12 +561,18 @@ SQL：{result.safe_sql}
         trace.append({"node": "compose_report", "status": "ok"})
         return report
 
-    def _reflect_quality(self, result: AgentResult, trace: list[dict[str, Any]]) -> None:
+    def _reflect_quality(
+        self, result: AgentResult, trace: list[dict[str, Any]]
+    ) -> None:
         trace.append(
             {
                 "node": "reflect_quality",
                 "status": "ok",
-                "notes": "empty result disclosed" if result.row_count == 0 else "result grounded in SQL output",
+                "notes": (
+                    "empty result disclosed"
+                    if result.row_count == 0
+                    else "result grounded in SQL output"
+                ),
             }
         )
 
@@ -515,7 +590,9 @@ SQL：{result.safe_sql}
         keywords = ("一家", "单个", "某家", "企业详情", "基本信息")
         return any(keyword in question for keyword in keywords)
 
-    def _apply_question_sql_constraints(self, sql: str, question: str, scenario: str) -> str:
+    def _apply_question_sql_constraints(
+        self, sql: str, question: str, scenario: str
+    ) -> str:
         if self._is_single_company_detail_question(question, scenario):
             return self._force_limit(sql, 1)
         return sql
@@ -553,7 +630,9 @@ SQL：{result.safe_sql}
         separator = "| " + " | ".join("---" for _ in columns) + " |"
         body = []
         for row in rows:
-            body.append("| " + " | ".join(str(row.get(col, "")) for col in columns) + " |")
+            body.append(
+                "| " + " | ".join(str(row.get(col, "")) for col in columns) + " |"
+            )
         return "\n".join([header, separator, *body])
 
     @staticmethod
@@ -562,13 +641,26 @@ SQL：{result.safe_sql}
             return None
         numeric_cols = []
         for col in result.columns:
-            if any(isinstance(row.get(col), (int, float, Decimal)) for row in result.rows[:20]):
+            if any(
+                isinstance(row.get(col), (int, float, Decimal))
+                for row in result.rows[:20]
+            ):
                 numeric_cols.append(col)
         if not numeric_cols:
             return None
-        x_col = next((col for col in result.columns if col not in numeric_cols), result.columns[0])
+        x_col = next(
+            (col for col in result.columns if col not in numeric_cols),
+            result.columns[0],
+        )
         y_col = numeric_cols[0]
-        chart_type = "line" if any(k in x_col.lower() for k in ("year", "date", "time", "年", "日期", "时间")) else "bar"
+        chart_type = (
+            "line"
+            if any(
+                k in x_col.lower()
+                for k in ("year", "date", "time", "年", "日期", "时间")
+            )
+            else "bar"
+        )
         return {"type": chart_type, "x": x_col, "y": y_col}
 
     @staticmethod
@@ -577,7 +669,8 @@ SQL：{result.safe_sql}
             conn_params = {
                 key: value
                 for key, value in db_config.items()
-                if key in {"host", "port", "user", "password", "database", "charset"} and value is not None
+                if key in {"host", "port", "user", "password", "database", "charset"}
+                and value is not None
             }
             conn_params.setdefault("charset", "utf8mb4")
             conn = pymysql.connect(**conn_params)

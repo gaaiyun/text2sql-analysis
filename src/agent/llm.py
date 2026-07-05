@@ -4,7 +4,6 @@ import os
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Sequence
 
-
 DEFAULT_VOLCENGINE_BASE_URL = "https://ark.cn-beijing.volces.com/api/coding/v3"
 DEFAULT_VOLCENGINE_MODEL = "glm-5.2"
 DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
@@ -29,7 +28,9 @@ class LLMSettings:
         if provider == "deepseek":
             return cls(
                 provider=provider,
-                base_url=str(data.get("DEEPSEEK_BASE_URL") or DEFAULT_DEEPSEEK_BASE_URL),
+                base_url=str(
+                    data.get("DEEPSEEK_BASE_URL") or DEFAULT_DEEPSEEK_BASE_URL
+                ),
                 api_key=str(data.get("DEEPSEEK_API_KEY") or ""),
                 model=str(data.get("DEEPSEEK_MODEL") or DEFAULT_DEEPSEEK_MODEL),
                 temperature=float(data.get("MODEL_TEMPERATURE") or 0.1),
@@ -37,7 +38,9 @@ class LLMSettings:
 
         return cls(
             provider=provider,
-            base_url=str(data.get("VOLCENGINE_ARK_BASE_URL") or DEFAULT_VOLCENGINE_BASE_URL),
+            base_url=str(
+                data.get("VOLCENGINE_ARK_BASE_URL") or DEFAULT_VOLCENGINE_BASE_URL
+            ),
             api_key=str(data.get("VOLCENGINE_ARK_API_KEY") or ""),
             model=str(data.get("VOLCENGINE_ARK_MODEL") or DEFAULT_VOLCENGINE_MODEL),
             temperature=float(data.get("MODEL_TEMPERATURE") or 0.1),
@@ -77,7 +80,9 @@ class OpenAICompatibleProvider:
         response = self.client.chat.completions.create(
             model=self.settings.model,
             messages=list(messages),
-            temperature=self.settings.temperature if temperature is None else temperature,
+            temperature=(
+                self.settings.temperature if temperature is None else temperature
+            ),
             max_tokens=max_tokens,
         )
         return (response.choices[0].message.content or "").strip()

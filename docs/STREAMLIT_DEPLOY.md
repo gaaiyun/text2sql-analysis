@@ -75,6 +75,23 @@ DB_USER_SCENARIO_1_3 = "znjz"
 DB_PASSWORD_SCENARIO_1_3 = "your-db-password"
 ```
 
+## 当前部署状态
+
+- GitHub PR：`feat/agent-runtime-streamlit` -> `main`
+- Streamlit Cloud 公网 URL：尚未绑定。本环境没有你的 Streamlit Cloud 控制台会话，不能代填 Advanced settings secrets。
+- 完成公网发布需要账号所有者在 Streamlit Cloud 中创建 App，并粘贴上方 secrets。
+- 本地验收已完成，详见 `docs/ACCEPTANCE_RESULTS.md`。
+
+## 发布前检查清单
+
+- [ ] PR CI 全部通过。
+- [ ] 火山方舟和 DeepSeek Key 已轮换，未使用聊天中出现过的旧 Key。
+- [ ] Streamlit Cloud Secrets 已配置 `APP_PASSWORD`、`VOLCENGINE_ARK_*`、`DB_*`。
+- [ ] MySQL 临时允许 Streamlit Cloud 访问，或已配置安全代理/云数据库白名单。
+- [ ] 页面输入错误口令时不能查询，正确口令可查询。
+- [ ] SQL、结果表、图表、Markdown 报告和 Trace 均能展示。
+- [ ] 页面、日志、报告和 git diff 中不出现 API Key 或数据库密码。
+
 ## 安全要求
 
 - 不提交 `.streamlit/secrets.toml`、`.env`、`config.json`。
@@ -98,5 +115,6 @@ python -m py_compile src/agent/llm.py src/agent/profiles.py src/agent/factory.py
 ## 参考链接
 
 - Streamlit Community Cloud secrets: https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management
-- 火山方舟兼容 OpenAI SDK: https://www.volcengine.com/docs/82379/1330626
+- 火山方舟 Coding Plan 文档: https://www.volcengine.com/docs/82379/1928261?lang=zh
+- 火山方舟兼容 OpenAI SDK: https://www.volcengine.com/docs/82379/2188959
 - DeepSeek API first call: https://api-docs.deepseek.com/

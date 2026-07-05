@@ -12,7 +12,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.agent.factory import build_agent_runtime
 
-
 STANDARD_QUESTIONS = [
     ("01_经营状态", "统计企业经营状态分布", "data_insight"),
     ("02_行业Top", "按行业统计企业数量 Top 10", "industry"),
@@ -41,9 +40,17 @@ def write_text(path: Path, content: str) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run znjz AgentRuntime acceptance questions.")
-    parser.add_argument("--output-dir", default=None, help="Output directory. Default: output/agent_acceptance_<timestamp>")
-    parser.add_argument("--limit", type=int, default=None, help="Only run the first N questions.")
+    parser = argparse.ArgumentParser(
+        description="Run znjz AgentRuntime acceptance questions."
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="Output directory. Default: output/agent_acceptance_<timestamp>",
+    )
+    parser.add_argument(
+        "--limit", type=int, default=None, help="Only run the first N questions."
+    )
     args = parser.parse_args()
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -75,7 +82,9 @@ def main() -> int:
             encoding="utf-8",
         )
 
-        report = result.report or f"# {question}\n\n执行失败：{result.error or '未知错误'}\n"
+        report = (
+            result.report or f"# {question}\n\n执行失败：{result.error or '未知错误'}\n"
+        )
         write_text(report_path, report)
 
         status = "success" if result.success else "failed"

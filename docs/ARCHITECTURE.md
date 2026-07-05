@@ -133,6 +133,29 @@ sequenceDiagram
 - 白名单基础表：`企业基本信息`、`企业基本信息_行业代码`、`企业融资信息`、`企业投资股东信息`、`招投标信息`、`商标资质信息`
 - 兼容视图：`企业行业代码`、`融资数据`、`投资数据`、`招投标`、`标签数据`
 
+## SQL 生成提示词设计
+
+`generate_sql` 的提示词由三层组成：
+
+```mermaid
+flowchart TB
+    Question["用户问题 + 场景"] --> Prompt["SQL 生成 Prompt"]
+    ProfileGuide["znjz 专用指南"] --> Prompt
+    SchemaDoc["znjz_text2sql_schema.md 截断上下文"] --> Prompt
+    Prompt --> LLM["OpenAI-compatible LLM"]
+    LLM --> SQL["候选 SELECT SQL"]
+    SQL --> SafeSQL["safe_sql 白名单和 LIMIT 校验"]
+```
+
+`znjz` profile 中的专用指南承担稳定生成 SQL 的主要约束：
+
+- 高频字段地图：把“企业数量、行业、融资、投资、招投标、资质”等自然语言表达映射到优先表/视图和真实字段。
+- 易错字段反例：明确禁止 `industry_name`、`city_name`、`company_name`、`finance_round` 等当前库不存在的字段。
+- 场景决策规则：分布/Top/趋势/区间必须聚合；企业详情必须先聚合一对多事实子查询再 JOIN；没有具体企业名时只取一家样例。
+- 标准 SQL 模板：覆盖经营状态、行业 Top、融资轮次、招投标年度、企业详情等验收问题。
+
+这个设计避免仅依赖完整 schema 长文本。即使 prompt 因 token 限制只截取部分 schema，高频字段和场景规则仍会完整进入模型上下文。
+
 ## 部署边界
 
 - Streamlit Cloud 运行 `streamlit_app.py`，使用 `st.secrets`。

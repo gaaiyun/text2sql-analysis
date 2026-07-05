@@ -140,7 +140,7 @@ SQL:"""
     return sql.strip()
 
 
-def test_sql(sql, db_config):
+def execute_test_sql(sql, db_config):
     """测试 SQL 执行"""
     try:
         conn = pymysql.connect(**db_config)
@@ -222,7 +222,7 @@ def main():
         # 3. 测试 SQL 执行
         print()
         print("[3/3] 测试 SQL 执行...")
-        test_result = test_sql(sql, db_config)
+        test_result = execute_test_sql(sql, db_config)
 
         if test_result["success"]:
             print(f"[OK] SQL 执行成功")

@@ -15,7 +15,8 @@ Text2SQL API Server
 
 API 端点:
     GET  /health                 - 健康检查
-    POST /api/query              - Text2SQL 查询
+    POST /api/agent/query        - 统一 Agent Runtime 查询
+    POST /api/query              - Text2SQL 查询（兼容旧入口）
     POST /api/query/llm          - LLM 模式生成 SQL
     POST /api/search             - 网络搜索
     POST /api/export/excel       - Excel 导出
@@ -41,13 +42,17 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-# 导入 Vanna
-import vanna as vn
+# Vanna 是可选兜底，不应阻断 Agent/API 基础功能导入
+try:
+    import vanna as vn
+except ImportError:
+    vn = None
 
 # 导入配置模块
 import sys
 sys.path.insert(0, str(Path(__file__).parent))
 from src.utils.config import get_kiro_config, get_database_config
+from src.agent.factory import build_agent_runtime
 from openai import OpenAI
 import pymysql
 
@@ -107,6 +112,32 @@ class QueryRequest(BaseModel):
     mode: str = Field(default="auto", description="模式：auto/vanna/llm")
     scenario: str = Field(default="data_insight", description="场景：data_insight/regional/industry/investment/due_diligence")
     generate_chart: bool = Field(default=False, description="是否生成图表")
+
+
+class AgentQueryRequest(BaseModel):
+    """统一 Agent 查询请求"""
+    question: str = Field(..., description="自然语言问题")
+    scenario: str = Field(default="data_insight", description="场景标识")
+    password: Optional[str] = Field(default=None, description="简单访问口令")
+
+
+class AgentQueryResponse(BaseModel):
+    """统一 Agent 查询响应"""
+    question: str
+    scenario: str
+    success: bool
+    sql: Optional[str] = None
+    safe_sql: Optional[str] = None
+    columns: List[str] = Field(default_factory=list)
+    rows: List[Any] = Field(default_factory=list)
+    row_count: int = 0
+    analysis: str = ""
+    report: str = ""
+    chart: Optional[dict] = None
+    error: Optional[str] = None
+    safety: Optional[dict] = None
+    trace: List[dict] = Field(default_factory=list)
+
 
 class QueryResponse(BaseModel):
     """查询响应"""
@@ -175,10 +206,15 @@ class TrainResponse(BaseModel):
 
 _vanna_initialized = False
 _llm_client = None
+_agent_runtime = None
 
 def init_vanna():
     """初始化 Vanna AI"""
     global _vanna_initialized
+
+    if vn is None:
+        logger.warning("Vanna 模块未安装，跳过 Vanna 兜底初始化")
+        return False
 
     if not CONFIG_PATH.exists():
         logger.warning(f"配置文件不存在：{CONFIG_PATH}")
@@ -230,6 +266,38 @@ def init_llm():
     except Exception as e:
         logger.error(f"LLM 客户端初始化失败：{e}")
         return False
+
+
+def init_agent_runtime():
+    """初始化统一 Agent Runtime；缺少 Key 时不阻断旧 API 启动。"""
+    global _agent_runtime
+
+    try:
+        _agent_runtime = build_agent_runtime(profile_name="znjz", scenario_key="scenario_1_3")
+        logger.info("Agent Runtime 初始化成功")
+        return True
+    except Exception as e:
+        _agent_runtime = None
+        logger.warning(f"Agent Runtime 初始化失败：{e}")
+        return False
+
+
+def get_agent_runtime():
+    global _agent_runtime
+    if _agent_runtime is None:
+        init_agent_runtime()
+    if _agent_runtime is None:
+        raise HTTPException(status_code=503, detail="Agent Runtime 未就绪，请检查 VOLCENGINE_ARK_API_KEY 和数据库配置")
+    return _agent_runtime
+
+
+def verify_app_password(request: Request, password: Optional[str] = None) -> None:
+    expected = os.environ.get("APP_PASSWORD")
+    if not expected:
+        return
+    provided = password or request.headers.get("X-App-Password") or request.headers.get("x-app-password")
+    if provided != expected:
+        raise HTTPException(status_code=401, detail="访问口令错误")
 
 
 def get_db_config_with_fallback(scenario: str) -> dict:
@@ -448,6 +516,7 @@ async def startup_event():
     """应用启动时初始化"""
     init_vanna()
     init_llm()
+    init_agent_runtime()
 
 
 @app.get("/")
@@ -458,7 +527,8 @@ async def root(request: Request):
         "service": "Text2SQL API",
         "version": "1.1.0",
         "vanna_initialized": _vanna_initialized,
-        "llm_initialized": _llm_client is not None
+        "llm_initialized": _llm_client is not None,
+        "agent_initialized": _agent_runtime is not None,
     }
 
 
@@ -468,8 +538,19 @@ async def health(request: Request):
     return {
         "status": "ok",
         "vanna": _vanna_initialized,
-        "llm": _llm_client is not None
+        "llm": _llm_client is not None,
+        "agent": _agent_runtime is not None,
     }
+
+
+@app.post("/api/agent/query", response_model=AgentQueryResponse)
+@limiter.limit("60/minute")
+async def agent_query(request: Request, query_request: AgentQueryRequest):
+    """统一 Agent Runtime 查询入口。"""
+    verify_app_password(request, query_request.password)
+    runtime = get_agent_runtime()
+    result = runtime.query(query_request.question, scenario=query_request.scenario)
+    return AgentQueryResponse(**result.to_dict())
 
 
 @app.post("/api/query", response_model=QueryResponse)
@@ -540,6 +621,8 @@ async def query(request: Request, query_request: QueryRequest):
         if not sql and mode == "vanna":
             if not _vanna_initialized:
                 raise HTTPException(status_code=503, detail="Vanna 服务未就绪")
+            if vn is None:
+                raise HTTPException(status_code=503, detail="Vanna 模块未安装")
 
             try:
                 # 使用 Vanna 生成 SQL
@@ -671,14 +754,14 @@ async def export_excel(request: Request, export_request: ExportRequest):
         from scripts.export_excel import export_to_excel
 
         # 生成查询
-        query_request = QueryRequest(question=request.question)
-        response = await query(query_request)
+        query_request = QueryRequest(question=export_request.question)
+        response = await query(request, query_request)
 
         if response.error:
             raise HTTPException(status_code=400, detail=response.error)
 
         # 导出 Excel
-        filename = request.filename or f"export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        filename = export_request.filename or f"export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         filepath = export_to_excel(response.data, filename)
 
         return ExportResponse(
@@ -710,15 +793,15 @@ async def export_word(request: Request, export_request: ExportRequest):
         from scripts.export_word import export_to_word
 
         # 生成查询
-        query_request = QueryRequest(question=request.question)
-        response = await query(query_request)
+        query_request = QueryRequest(question=export_request.question)
+        response = await query(request, query_request)
 
         if response.error:
             raise HTTPException(status_code=400, detail=response.error)
 
         # 导出 Word
-        filename = request.filename or f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
-        filepath = export_to_word(response.data, request.question, filename)
+        filename = export_request.filename or f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
+        filepath = export_to_word(response.data, export_request.question, filename)
 
         return ExportResponse(
             status="success",
@@ -748,16 +831,16 @@ async def generate_report(request: Request, report_request: ReportRequest):
     try:
         # 生成查询
         query_request = QueryRequest(
-            question=request.question,
-            generate_chart=request.include_chart
+            question=report_request.question,
+            generate_chart=report_request.include_chart
         )
-        query_response = await query(query_request)
+        query_response = await query(request, query_request)
 
         if query_response.error:
             raise HTTPException(status_code=400, detail=query_response.error)
 
         # 生成报告内容
-        title = request.question
+        title = report_request.question
         content = f"""# {title}
 
 ## 查询结果
@@ -810,10 +893,12 @@ async def train_model(request: Request, train_request: TrainRequest):
     """
     if not _vanna_initialized:
         raise HTTPException(status_code=503, detail="Vanna 服务未就绪")
+    if vn is None:
+        raise HTTPException(status_code=503, detail="Vanna 模块未安装")
 
     try:
-        if request.ddl:
-            status = vn.train(ddl=request.ddl)
+        if train_request.ddl:
+            status = vn.train(ddl=train_request.ddl)
             logger.info(f"DDL 训练成功：{status}")
             return TrainResponse(
                 status="success",
@@ -822,8 +907,8 @@ async def train_model(request: Request, train_request: TrainRequest):
                 message="DDL 训练成功"
             )
 
-        elif request.sql:
-            status = vn.train(sql=request.sql)
+        elif train_request.sql:
+            status = vn.train(sql=train_request.sql)
             logger.info(f"SQL 训练成功：{status}")
             return TrainResponse(
                 status="success",
@@ -832,8 +917,8 @@ async def train_model(request: Request, train_request: TrainRequest):
                 message="SQL 训练成功"
             )
 
-        elif request.document:
-            status = vn.train(document=request.document)
+        elif train_request.document:
+            status = vn.train(document=train_request.document)
             logger.info(f"文档训练成功：{status}")
             return TrainResponse(
                 status="success",
@@ -859,6 +944,8 @@ async def get_schema_endpoint(request: Request):
     """获取数据库 Schema"""
     if not _vanna_initialized:
         raise HTTPException(status_code=503, detail="Vanna 服务未就绪")
+    if vn is None:
+        raise HTTPException(status_code=503, detail="Vanna 模块未安装")
 
     try:
         ddl = vn.get_training_data()

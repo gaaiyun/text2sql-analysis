@@ -30,6 +30,10 @@ from openai import OpenAI
 
 from src.utils.config import get_database_config, get_kiro_config
 
+
+RUN_LEGACY_EXTERNAL_TESTS = os.environ.get("RUN_LEGACY_EXTERNAL_TESTS") == "1"
+LEGACY_SKIP_REASON = "旧 Kiro/双库外部集成测试默认跳过；设置 RUN_LEGACY_EXTERNAL_TESTS=1 后运行"
+
 # =============================================================================
 # 测试配置
 # =============================================================================
@@ -179,6 +183,7 @@ def execute_sql(sql, db_config):
 # =============================================================================
 
 
+@unittest.skipUnless(RUN_LEGACY_EXTERNAL_TESTS, LEGACY_SKIP_REASON)
 class TestScenario1DataInsight(unittest.TestCase):
     """场景 1: 数据洞察测试"""
 
@@ -203,6 +208,7 @@ class TestScenario1DataInsight(unittest.TestCase):
         self.assertGreater(result["row_count"], 0, "查询结果应为空")
 
 
+@unittest.skipUnless(RUN_LEGACY_EXTERNAL_TESTS, LEGACY_SKIP_REASON)
 class TestScenario2RegionalAnalysis(unittest.TestCase):
     """场景 2: 地区产业分析测试"""
 
@@ -226,6 +232,7 @@ class TestScenario2RegionalAnalysis(unittest.TestCase):
         self.assertTrue(result["success"], f"SQL 执行失败：{result.get('error')}")
 
 
+@unittest.skipUnless(RUN_LEGACY_EXTERNAL_TESTS, LEGACY_SKIP_REASON)
 class TestScenario3IndustryAnalysis(unittest.TestCase):
     """场景 3: 行业分析测试"""
 
@@ -249,6 +256,7 @@ class TestScenario3IndustryAnalysis(unittest.TestCase):
         self.assertTrue(result["success"], f"SQL 执行失败：{result.get('error')}")
 
 
+@unittest.skipUnless(RUN_LEGACY_EXTERNAL_TESTS, LEGACY_SKIP_REASON)
 class TestScenario4InvestmentList(unittest.TestCase):
     """场景 4: 招商清单测试"""
 
@@ -273,6 +281,7 @@ class TestScenario4InvestmentList(unittest.TestCase):
         self.assertGreater(result["row_count"], 0, "查询结果应为空")
 
 
+@unittest.skipUnless(RUN_LEGACY_EXTERNAL_TESTS, LEGACY_SKIP_REASON)
 class TestScenario5DueDiligence(unittest.TestCase):
     """场景 5: 企业尽调测试"""
 
@@ -296,6 +305,7 @@ class TestScenario5DueDiligence(unittest.TestCase):
         self.assertTrue(result["success"], f"SQL 执行失败：{result.get('error')}")
 
 
+@unittest.skipUnless(RUN_LEGACY_EXTERNAL_TESTS, LEGACY_SKIP_REASON)
 class TestDatabaseConnection(unittest.TestCase):
     """数据库连接测试"""
 

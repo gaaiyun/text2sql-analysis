@@ -18,6 +18,14 @@
 
 Text2SQL 是一个企业级的自然语言到 SQL 查询生成系统，能够将用户的自然语言问题自动转换为 SQL 查询，执行查询后生成包含数据分析、图表可视化和网络信息补充的多模态智能报告。
 
+**v3.0 Agent Runtime + Streamlit 部署更新**：
+- 新增统一 `src/agent/AgentRuntime`，API、Streamlit、n8n、Demo 共享同一套 Text2SQL 执行链路
+- 主实验库切换为 `znjz` 智能制造数据库，详见 `schema/znjz_text2sql_schema.md`
+- 默认 LLM provider 为火山方舟 Coding Plan（`glm-5.2`），DeepSeek 可作为备用 OpenAI-compatible provider
+- 新增公网入口 `streamlit_app.py`，支持 `APP_PASSWORD` 简单口令、SQL 展示、结果表格、图表和 Markdown 报告下载
+- 新增统一 API：`POST /api/agent/query`，返回 `sql`、`safe_sql`、`rows`、`analysis`、`report`、`trace`
+- 架构说明见 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)，Streamlit 部署见 [`docs/STREAMLIT_DEPLOY.md`](docs/STREAMLIT_DEPLOY.md)
+
 **v2.3 安全 + 测试更新**：
 - 新增 `src/utils/safe_sql.py` —— schema-aware SQL 安全 + 自动改写：
   白名单表 / 强制 SELECT-only / 自动 LIMIT / 多语句拒绝 / WITH CTE 支持
@@ -233,24 +241,32 @@ cd text2sql-analysis
 # 2. 安装依赖
 pip install -r requirements.txt
 
-# 3. 配置环境变量（创建.env文件）
-DASHSCOPE_API_KEY=your_api_key_here
-MYSQL_HOST=localhost
-MYSQL_USER=root
-MYSQL_PASSWORD=your_password
-MYSQL_DATABASE=gaaiyun
+# 3. 配置环境变量（创建 .env 文件，或部署时使用 Streamlit Secrets）
+LLM_PROVIDER=volcengine_ark
+VOLCENGINE_ARK_API_KEY=your-volcengine-ark-api-key-here
+DB_HOST_SCENARIO_1_3=your-db-host
+DB_PORT_SCENARIO_1_3=3306
+DB_NAME_SCENARIO_1_3=znjz
+DB_USER_SCENARIO_1_3=znjz
+DB_PASSWORD_SCENARIO_1_3=your-db-password
+APP_PASSWORD=change-me
 
-# 4. 启动Web应用
-python web_app.py
+# 4. 启动 Streamlit Agent 应用
+streamlit run streamlit_app.py
 ```
 
-访问：http://localhost:7860
+访问：http://localhost:8501
 
 ### 其他启动方式
 
 **API服务**
 ```bash
 python api_server.py  # http://localhost:8000/docs
+```
+
+**旧 Gradio Web 应用**
+```bash
+python web_app.py  # http://localhost:7860
 ```
 
 **命令行Demo**
@@ -294,28 +310,28 @@ python demo/demo_scenario_1.py
 ```python
 import requests
 
-# 简单查询
+# 推荐：统一 Agent Runtime
 response = requests.post(
-    "http://localhost:8000/api/query",
+    "http://localhost:8000/api/agent/query",
     json={
-        "question": "分析2023-2024年融资趋势",
-        "scenario": "data_insight",
-        "mode": "auto"  # auto: 自动选择, llm: LLM模式, vanna: Vanna模式
+        "question": "按行业统计企业数量 Top 10",
+        "scenario": "industry"
     }
 )
 
 result = response.json()
-print(f"生成的SQL: {result['sql']}")
-print(f"查询结果: {result['data']}")
+print(f"安全SQL: {result['safe_sql']}")
+print(f"查询结果: {result['rows']}")
+print(f"分析: {result['analysis']}")
 ```
 
 #### cURL 调用
 
 ```bash
-curl -X POST http://localhost:8000/api/query \
+curl -X POST http://localhost:8000/api/agent/query \
   -H "Content-Type: application/json" \
   -d '{
-    "question": "分析融资趋势",
+    "question": "统计企业经营状态分布",
     "scenario": "data_insight"
   }'
 ```
@@ -357,41 +373,46 @@ python demo/scenario_3_industry_analysis.py
 `.env` 文件配置项：
 
 ```bash
-# 阿里云百炼 API
-DASHSCOPE_API_KEY=sk-sp-xxxxx  # Coding Plan 专属 API Key
-DASHSCOPE_BASE_URL=https://coding.dashscope.aliyuncs.com/v1
+# 默认 LLM：火山方舟 Coding Plan
+LLM_PROVIDER=volcengine_ark
+VOLCENGINE_ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/coding/v3
+VOLCENGINE_ARK_API_KEY=your-volcengine-ark-api-key-here
+VOLCENGINE_ARK_MODEL=glm-5.2
+MODEL_TEMPERATURE=0.1
 
-# 数据库配置 - 场景 1-3
+# 可选备用 LLM：DeepSeek
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_API_KEY=your-deepseek-api-key-here
+DEEPSEEK_MODEL=deepseek-v4-flash
+
+# Streamlit 公网访问口令
+APP_PASSWORD=change-me
+
+# 数据库配置 - znjz 智能制造实验库
 DB_HOST_SCENARIO_1_3=your-host
 DB_PORT_SCENARIO_1_3=3306
-DB_NAME_SCENARIO_1_3=Gaaiyun
-DB_USER_SCENARIO_1_3=your-user
+DB_NAME_SCENARIO_1_3=znjz
+DB_USER_SCENARIO_1_3=znjz
 DB_PASSWORD_SCENARIO_1_3=your-password
 
-# 数据库配置 - 场景 4-5
+# 旧库兼容配置（可选）
 DB_HOST_SCENARIO_4_5=your-host
 DB_PORT_SCENARIO_4_5=3306
 DB_NAME_SCENARIO_4_5=gaaiyun_2
 DB_USER_SCENARIO_4_5=your-user
 DB_PASSWORD_SCENARIO_4_5=your-password
-
-# 模型配置
-MODEL_NAME=qwen3.5-plus  # 推荐模型
-MODEL_TEMPERATURE=0.1
 ```
 
 ### 支持的模型
 
-**阿里云百炼 Coding Plan 支持的模型**：
+**OpenAI-compatible Provider**：
 
-| 模型 | 特点 | 适用场景 |
-|------|------|---------|
-| qwen3.5-plus | 推荐，支持图片理解 | 通用场景 |
-| kimi-k2.5 | 支持图片理解 | 长文本处理 |
-| glm-5 | 高性能 | 复杂推理 |
-| MiniMax-M2.5 | 平衡性能 | 通用场景 |
+| Provider | 默认模型 | 配置方式 |
+|----------|----------|----------|
+| 火山方舟 Coding Plan | `glm-5.2` | `LLM_PROVIDER=volcengine_ark` + `VOLCENGINE_ARK_*` |
+| DeepSeek（备用） | `deepseek-v4-flash` | `LLM_PROVIDER=deepseek` + `DEEPSEEK_*` |
 
-**切换模型**：修改 `.env` 文件中的 `MODEL_NAME` 参数。
+生产部署时不要提交 `.env` 或 `.streamlit/secrets.toml`，请在 Streamlit Cloud Advanced settings 中填写同名 Secrets。
 
 ---
 
@@ -399,32 +420,38 @@ MODEL_TEMPERATURE=0.1
 
 ### 核心接口
 
-#### 1. 查询接口
+#### 1. 统一 Agent 查询接口
 
-**POST** `/api/query`
+**POST** `/api/agent/query`
 
-生成 SQL 并执行查询。
+生成 SQL、进行安全校验、执行查询并返回分析报告。
 
 **请求参数**：
 ```json
 {
-  "question": "分析2023年融资趋势",
+  "question": "统计企业经营状态分布",
   "scenario": "data_insight",
-  "mode": "auto"
+  "password": "可选，配置 APP_PASSWORD 时需要"
 }
 ```
 
 **响应**：
 ```json
 {
+  "success": true,
   "sql": "SELECT ...",
-  "data": {
-    "columns": ["年份", "融资金额"],
-    "rows": [[2023, 1000000]]
-  },
-  "execution_time": 2.5
+  "safe_sql": "SELECT ... LIMIT 1000",
+  "columns": ["status", "cnt"],
+  "rows": [{"status": "存续", "cnt": 100}],
+  "row_count": 1,
+  "analysis": "当前返回结果显示...",
+  "report": "# Text2SQL 分析报告",
+  "chart": {"type": "bar", "x": "status", "y": "cnt"},
+  "trace": [{"node": "reflect_quality", "status": "ok"}]
 }
 ```
+
+旧接口 `/api/query`、`/api/query/llm`、`/api/query/vanna` 继续保留，用于兼容已有脚本。
 
 #### 2. 报告接口
 

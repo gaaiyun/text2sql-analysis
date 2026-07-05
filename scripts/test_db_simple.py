@@ -16,7 +16,7 @@ import pymysql
 from src.utils.config import Config
 
 
-def test_connection(db_name, config_dict):
+def check_connection(db_name, config_dict):
     """测试数据库连接"""
     print(f"\n[测试] {db_name}")
     print(f"  Host: {config_dict['host']}")
@@ -70,11 +70,11 @@ def main():
 
     # 测试场景 1-3
     db1 = config.get_database_config("scenario_1_3")
-    success1 = test_connection("场景 1-3 (Gaaiyun)", db1)
+    success1 = check_connection("场景 1-3 (znjz)", db1)
 
     # 测试场景 4-5
     db2 = config.get_database_config("scenario_4_5")
-    success2 = test_connection("场景 4-5 (gaaiyun_2)", db2)
+    success2 = check_connection("场景 4-5 (gaaiyun_2)", db2)
 
     # 总结
     print("\n" + "=" * 60)

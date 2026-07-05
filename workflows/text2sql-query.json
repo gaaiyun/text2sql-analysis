@@ -16,7 +16,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/api/vanna/query",
+        "url": "http://localhost:8000/api/agent/query",
         "sendHeaders": {
           "header": {
             "name": "Content-Type",
@@ -36,7 +36,7 @@
         "options": {}
       },
       "id": "http-request-node",
-      "name": "HTTP Request - Vanna API",
+      "name": "HTTP Request - Agent API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
       "position": [450, 300]
@@ -44,7 +44,7 @@
     {
       "parameters": {
         "language": "python",
-        "code": "import json\nimport pandas as pd\n\n# 从输入获取数据\ndata = json.loads($input.all()[0].json.data)\ndf = pd.DataFrame(data)\n\n# 生成 Markdown 表格\nmarkdown_table = df.to_markdown(index=False)\n\nreturn {\n    'markdown': markdown_table,\n    'data': data,\n    'sql': $input.all()[0].json.sql\n}"
+        "code": "import pandas as pd\n\n# 从 Agent Runtime 响应获取数据\ndata = $input.all()[0].json.get('rows', [])\ndf = pd.DataFrame(data)\n\n# 生成 Markdown 表格\nmarkdown_table = df.to_markdown(index=False) if not df.empty else '无数据'\n\nreturn {\n    'markdown': markdown_table,\n    'data': data,\n    'sql': $input.all()[0].json.get('safe_sql') or $input.all()[0].json.get('sql'),\n    'analysis': $input.all()[0].json.get('analysis', '')\n}"
       },
       "id": "code-node",
       "name": "Code - 数据处理",

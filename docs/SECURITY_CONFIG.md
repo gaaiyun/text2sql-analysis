@@ -35,17 +35,27 @@ export DB_PASSWORD_SCENARIO_1_3="your-password"
 
 ## 必需的环境变量
 
-### 阿里云百炼 API
+### 默认 LLM：火山方舟 Coding Plan
 ```
-DASHSCOPE_API_KEY=sk-your-api-key-here
+LLM_PROVIDER=volcengine_ark
+VOLCENGINE_ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/coding/v3
+VOLCENGINE_ARK_API_KEY=your-volcengine-ark-api-key-here
+VOLCENGINE_ARK_MODEL=glm-5.2
 ```
 
-### 数据库配置 - 场景 1-3
+### 备用 LLM：DeepSeek（可选）
+```
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_API_KEY=your-deepseek-api-key-here
+DEEPSEEK_MODEL=deepseek-v4-flash
+```
+
+### 数据库配置 - znjz 智能制造实验库
 ```
 DB_HOST_SCENARIO_1_3=your-db-host
 DB_PORT_SCENARIO_1_3=3306
-DB_NAME_SCENARIO_1_3=Gaaiyun
-DB_USER_SCENARIO_1_3=your-username
+DB_NAME_SCENARIO_1_3=znjz
+DB_USER_SCENARIO_1_3=znjz
 DB_PASSWORD_SCENARIO_1_3=your-password
 ```
 

@@ -243,6 +243,31 @@ def test_referenced_tables_extracted():
     assert set(rep.referenced_tables) == {"a", "b", "c"}
 
 
+def test_join_subquery_aliases_are_not_treated_as_tables():
+    sql = """
+    SELECT e.eid, COALESCE(fc.fin_cnt, 0) AS finance_count
+    FROM `企业基本信息` e
+    LEFT JOIN (
+      SELECT eid, COUNT(*) AS fin_cnt
+      FROM `融资数据`
+      GROUP BY eid
+    ) fc ON e.eid = fc.eid
+    LEFT JOIN (
+      SELECT eid, COUNT(*) AS bid_cnt
+      FROM `招投标`
+      GROUP BY eid
+    ) bc ON e.eid = bc.eid
+    LIMIT 1
+    """
+    rep = enforce_safe_sql(
+        sql,
+        allowed_tables=["企业基本信息", "融资数据", "招投标"],
+    )
+
+    assert rep.is_safe is True
+    assert set(rep.referenced_tables) == {"企业基本信息", "融资数据", "招投标"}
+
+
 def test_referenced_tables_db_prefix_stripped():
     """`db.table` 风格只取表名。"""
     rep = enforce_safe_sql("SELECT * FROM mydb.users", allowed_tables=["users"])

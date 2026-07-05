@@ -52,6 +52,21 @@
 - `output/streamlit_ui_20260706_0037/02_query_form.png`
 - `output/streamlit_ui_20260706_0037/03_result.png`
 
+## 部署就绪验收
+
+- PR：`https://github.com/gaaiyun/text2sql-analysis/pull/5`
+- GitHub Actions：`test (3.11)`、`test (3.12)`、`lint` 均为 SUCCESS
+- 本地完整测试：`181 passed, 13 skipped`
+- Streamlit 烟测：`output/streamlit_smoke_20260706_0101/`，HTTP 200，进程停止后端口关闭
+- 部署契约检查：`python scripts/check_streamlit_readiness.py` 全部 PASS
+
+Streamlit Cloud 当前打开为登录页，当前环境没有可用账号登录态，无法代替账号所有者创建 Cloud App 或填写 Advanced settings secrets。公网发布需要在 Streamlit Cloud 控制台完成：
+
+1. 选择 GitHub 仓库和 `streamlit_app.py`。
+2. 按 `docs/STREAMLIT_DEPLOY.md` 配置 secrets。
+3. 轮换任何曾在聊天中出现过的模型 Key。
+4. 确认 MySQL 允许 Streamlit Cloud 访问。
+
 ## 注意
 
 - 验收使用真实 MySQL 和真实 LLM 调用。

@@ -102,9 +102,12 @@ DB_PASSWORD_SCENARIO_1_3 = "your-db-password"
 ## 本地验证
 
 ```bash
+python scripts/check_streamlit_readiness.py
 python -m pytest tests/test_safe_sql.py tests/test_agent_runtime.py tests/test_api_agent_endpoint.py tests/test_deployment_contracts.py -q
 python -m py_compile src/agent/llm.py src/agent/profiles.py src/agent/factory.py src/agent/runtime.py api_server.py streamlit_app.py demo/text2sql_utils.py
 ```
+
+`scripts/check_streamlit_readiness.py` 不读取真实 secrets，只检查部署入口、依赖、secrets 模板、`.gitignore` 和 Streamlit 配置键是否一致。
 
 ## Provider 切换
 

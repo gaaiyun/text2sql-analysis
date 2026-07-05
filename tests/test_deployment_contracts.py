@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from scripts.check_streamlit_readiness import REQUIRED_SECRET_KEYS, run_checks
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -34,3 +36,13 @@ def test_n8n_workflows_use_unified_agent_endpoint():
         assert "/api/agent/query" in workflow_text
         assert "/api/vanna/query" not in workflow_text
         assert "/api/v0/generate_sql" not in workflow_text
+
+
+def test_streamlit_readiness_contract_passes_without_real_secrets():
+    results = run_checks(REPO_ROOT)
+    failed = [result for result in results if not result.ok]
+
+    assert failed == []
+    assert {f"secret:{key}" for key in REQUIRED_SECRET_KEYS}.issubset(
+        {result.name for result in results}
+    )

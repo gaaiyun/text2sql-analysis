@@ -1,685 +1,268 @@
-# Text2SQL 多工作流协作智能体系统
+# Text2SQL Analysis
 
-<div align="center">
+面向地区产业发展分析的 Text2SQL Agent 项目。当前主线已经收敛为统一的 `AgentRuntime`：Streamlit、公网 UI、FastAPI、n8n 和 demo 入口共享同一条 SQL 生成、校验、执行、修复和报告链路。
 
-**基于 LLM 的自然语言到 SQL 查询生成与智能报告系统**
+当前主实验库是 `znjz` 智能制造数据库。旧 `Gaaiyun` / `gaaiyun_2`、Vanna 训练脚本和早期 Web 入口保留为兼容资产，不再作为第一版公网体验的主路径。
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![阿里云百炼](https://img.shields.io/badge/阿里云百炼-Coding_Plan-orange.svg)](https://dashscope.console.aliyun.com/)
+## 当前主线
 
-[快速开始](#快速开始) • [功能特性](#功能特性) • [技术架构](#技术架构) • [使用文档](#使用文档) • [Agent升级](#agent升级) • [API文档](#api文档)
+| 项 | 当前选择 |
+| --- | --- |
+| 公网入口 | `streamlit_app.py` |
+| Agent runtime | `src/agent/runtime.py`，优先 LangGraph，缺依赖时线性 fallback |
+| LLM provider | 默认火山方舟 Coding Plan，OpenAI-compatible |
+| 默认模型 | `glm-5.2` |
+| 主数据库 profile | `znjz` |
+| Schema 知识库 | `schema/znjz_text2sql_schema.md` |
+| SQL 安全层 | `src/utils/safe_sql.py` |
+| API | `POST /api/agent/query` |
+| 部署目标 | Streamlit Cloud |
 
-</div>
+Streamlit Cloud 创建应用时填写：
 
----
+- Repository: `gaaiyun/text2sql-analysis`
+- Branch: `main`
+- Main file path: `streamlit_app.py`
 
-## 📖 项目简介
+不要填写 `/streamlit_app.py`。
 
-Text2SQL 是一个企业级的自然语言到 SQL 查询生成系统，能够将用户的自然语言问题自动转换为 SQL 查询，执行查询后生成包含数据分析、图表可视化和网络信息补充的多模态智能报告。
+## 快速开始
 
-**v3.0 Agent Runtime + Streamlit 部署更新**：
-- 新增统一 `src/agent/AgentRuntime`，API、Streamlit、n8n、Demo 共享同一套 Text2SQL 执行链路
-- 主实验库切换为 `znjz` 智能制造数据库，详见 `schema/znjz_text2sql_schema.md`
-- 默认 LLM provider 为火山方舟 Coding Plan（`glm-5.2`），DeepSeek 可作为备用 OpenAI-compatible provider
-- 新增公网入口 `streamlit_app.py`，支持 `APP_PASSWORD` 简单口令、SQL 展示、结果表格、图表和 Markdown 报告下载
-- 新增统一 API：`POST /api/agent/query`，返回 `sql`、`safe_sql`、`rows`、`analysis`、`report`、`trace`
-- 架构说明见 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)，Streamlit 部署见 [`docs/STREAMLIT_DEPLOY.md`](docs/STREAMLIT_DEPLOY.md)
-
-**v2.3 安全 + 测试更新**：
-- 新增 `src/utils/safe_sql.py` —— schema-aware SQL 安全 + 自动改写：
-  白名单表 / 强制 SELECT-only / 自动 LIMIT / 多语句拒绝 / WITH CTE 支持
-- 新增 `tests/test_safe_sql.py` 38 个 pytest 覆盖（参考 OWASP / sqlmap 注入向量）
-- 修 `tests/test_sql_security.py` 的 broken import（`from utils.` →
-  `from src.utils.`），让 v1 的 43 个安全测试也能跑
-- AI meta 文档（AGENT_UPGRADE.md / TEST_RESULTS.md / CHANGELOG.md）归档到
-  `docs/legacy/`
-- 详见 [`docs/SECURITY.md`](docs/SECURITY.md)
-
-### 核心价值
-
-- **零 SQL 门槛**：业务人员无需编写 SQL，用自然语言即可查询数据
-- **智能分析**：自动生成数据洞察、趋势分析和业务建议
-- **多模态输出**：支持 Markdown、PDF、Excel、Word 等多种格式
-- **企业级应用**：支持 5 大业务场景，覆盖数据洞察、产业分析、招商清单、企业尽调等
-
-### 应用场景
-
-| 场景 | 功能描述 | 输出格式 | 适用对象 |
-|------|---------|---------|---------|
-| **场景1：数据洞察** | 融资趋势、行业分布、地区分析等数据洞察 | Markdown + PDF + 图表 | 投资分析师、数据分析师 |
-| **场景2：地区产业分析** | 地区经济、主导产业、龙头企业、投资来源分析 | Markdown + PDF + 图表 | 政府部门、招商人员 |
-| **场景3：行业分析** | 行业趋势、技术方向、空间分布、企业生命周期 | Markdown + PDF + 图表 | 行业研究员、投资机构 |
-| **场景4：招商清单** | 企业多维度评估、优质企业筛选 | Excel | 招商部门、园区管理 |
-| **场景5：企业尽调** | 企业全面尽职调查报告 | Word | 投资机构、风控部门 |
-
----
-
-## ✨ 功能特性
-
-### 🎯 核心功能
-
-- **真正的 Text2SQL**
-  - 100% 动态生成 SQL（无硬编码）
-  - LLM 为主、Vanna AI 兜底的双引擎架构
-  - 基于完整 Schema 工程的高质量生成
-
-- **完整的报告流水线**
-  ```
-  自然语言问题 → SQL生成 → 执行查询 → 数据分析 → 图表生成 → 网络搜索 → 多模态报告
-  ```
-
-- **智能图表生成**
-  - 自动推断图表类型（折线图、柱状图、饼图、分组柱状图）
-  - 根据数据特征智能选择最佳可视化方式
-  - 支持自定义图表样式和配色
-
-- **网络信息补充**
-  - 自动搜索相关行业动态和新闻
-  - 补充最新的市场信息和政策解读
-  - 增强报告的时效性和完整性
-
-- **多模态输出**
-  - Markdown：适合在线查看和分享
-  - PDF：适合打印和存档
-  - Excel：适合数据分析和筛选
-  - Word：适合正式报告和文档
-
-### 🔧 技术特性
-
-- **Schema 工程**
-  - 完整的表结构、字段说明、关系定义
-  - Few-shot 示例库（25+ 标准 Question-SQL 配对）
-  - 单一事实来源，确保一致性
-
-- **专业图表生成**
-  - 现代化配色方案（专业蓝色系）
-  - 高清输出（300 DPI，适合打印）
-  - 自动推断最佳图表类型
-  - 支持柱状图、折线图、饼图、分组柱状图
-  - 图表正确嵌入Word和PDF文档
-
-- **智能网络搜索**
-  - LLM自动提取关键词
-  - 添加时间范围提升相关性
-  - 搜索结果融合到数据分析
-
-- **安全配置**
-  - 环境变量管理敏感信息
-  - 无明文密码和密钥
-  - 自动安全检查脚本
-
-- **高性能**
-  - 完整流程：10-15 秒
-  - SQL生成：2-5 秒
-  - 支持并发处理
-
-- **可扩展**
-  - 模块化设计，易于扩展新场景
-  - 支持自定义提示词和 SQL 模板
-  - 兼容多种 LLM 模型
-
----
-
-## 🏗️ 技术架构
-
-### 系统架构图
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        用户层                                │
-│  Web界面 / API调用 / n8n工作流 / 命令行工具                  │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│                      API服务层                               │
-│  ┌──────────────┐              ┌──────────────┐            │
-│  │ API Server   │              │ Vanna Server │            │
-│  │ (8000端口)   │              │ (5000端口)   │            │
-│  │ LLM + Vanna  │              │ Vanna专用    │            │
-│  └──────────────┘              └──────────────┘            │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│                    核心处理层                                │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │ Text2SQL引擎 │  │ 数据分析模块 │  │ 图表生成模块 │     │
-│  │ LLM/Vanna   │  │ LLM分析     │  │ 自动推断     │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │ 网络搜索模块 │  │ 文档生成模块 │  │ Schema工程   │     │
-│  │ DuckDuckGo  │  │ MD/PDF/Excel │  │ 表结构/示例  │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│                      数据层                                  │
-│  ┌──────────────┐              ┌──────────────┐            │
-│  │ MySQL数据库  │              │ 阿里云百炼   │            │
-│  │ 场景1-3/4-5  │              │ LLM API     │            │
-│  └──────────────┘              └──────────────┘            │
-└─────────────────────────────────────────────────────────────┘
+```powershell
+cd G:\text2sql-analysis
+python -m pip install -r requirements.txt
 ```
 
-### 技术栈
+配置环境变量或本地 `.env`。不要提交 `.env` 或 `.streamlit/secrets.toml`。
 
-**后端框架**
-- Python 3.8+
-- FastAPI（API 服务）
-- Flask（Vanna 服务）
-
-**AI 模型**
-- 阿里云百炼 Coding Plan
-  - qwen3.5-plus（推荐，支持图片理解）
-  - kimi-k2.5（支持图片理解）
-  - glm-5、MiniMax-M2.5
-- Vanna AI（Text2SQL 兜底）
-
-**数据库**
-- MySQL 8.0+
-- PyMySQL（数据库连接）
-
-**数据处理与可视化**
-- Pandas（数据处理）
-- Matplotlib（图表生成）
-- Seaborn（高级可视化）
-
-**文档生成**
-- ReportLab（PDF 生成）
-- python-docx（Word 生成）
-- openpyxl（Excel 生成）
-- Markdown（文本格式）
-
-**其他工具**
-- DuckDuckGo（网络搜索）
-- n8n（工作流编排，可选）
-
-### SQL 生成策略
-
-**双引擎架构**：LLM 为主、Vanna 兜底
-
-```python
-def generate_sql(question, scenario):
-    # 1. 加载 Schema 和 Few-shot 示例
-    schema = load_schema(scenario)
-    examples = load_examples(scenario)
-    
-    # 2. LLM 生成（主力）
-    sql = llm_generate(question, schema, examples)
-    
-    # 3. 验证 SQL
-    if validate_sql(sql):
-        return sql
-    
-    # 4. Vanna 兜底
-    sql = vanna_generate(question)
-    
-    # 5. 再次验证
-    if validate_sql(sql):
-        return sql
-    
-    # 6. 返回错误
-    raise SQLGenerationError()
-```
-
-**优势**：
-- LLM 模式：基于详细 Schema + Few-shot，生成质量高
-- Vanna 兜底：预训练模型，响应快，保证可用性
-- 无硬编码：所有 SQL 均动态生成，灵活性强
-
----
-
-## 🚀 快速开始
-
-### 一键启动
-
-```bash
-# 1. 克隆项目
-git clone https://github.com/gaaiyun/text2sql-analysis.git
-cd text2sql-analysis
-
-# 2. 安装依赖
-pip install -r requirements.txt
-
-# 3. 配置环境变量（创建 .env 文件，或部署时使用 Streamlit Secrets）
+```env
 LLM_PROVIDER=volcengine_ark
+VOLCENGINE_ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/coding/v3
 VOLCENGINE_ARK_API_KEY=your-volcengine-ark-api-key-here
+VOLCENGINE_ARK_MODEL=glm-5.2
+APP_PASSWORD=change-me
+
 DB_HOST_SCENARIO_1_3=your-db-host
 DB_PORT_SCENARIO_1_3=3306
 DB_NAME_SCENARIO_1_3=znjz
 DB_USER_SCENARIO_1_3=znjz
 DB_PASSWORD_SCENARIO_1_3=your-db-password
-APP_PASSWORD=change-me
+```
 
-# 4. 启动 Streamlit Agent 应用
+本地启动 Streamlit：
+
+```powershell
 streamlit run streamlit_app.py
 ```
 
-访问：http://localhost:8501
+本地启动 FastAPI：
 
-### 其他启动方式
-
-**API服务**
-```bash
-python api_server.py  # http://localhost:8000/docs
+```powershell
+python api_server.py
 ```
 
-**旧 Gradio Web 应用**
-```bash
-python web_app.py  # http://localhost:7860
+## Streamlit Cloud 部署
+
+详细步骤见 [docs/STREAMLIT_DEPLOY.md](docs/STREAMLIT_DEPLOY.md)。
+
+部署前先跑：
+
+```powershell
+python scripts/check_streamlit_readiness.py
+python -m pytest -q
 ```
 
-**命令行Demo**
-```bash
-python demo/demo_scenario_1.py
+Streamlit Cloud 的 Advanced settings secrets 使用 `.streamlit/secrets.toml.example` 中的键名。生产部署前请轮换任何曾在聊天、日志或截图中出现过的模型 Key。
+
+## 架构
+
+```mermaid
+flowchart TB
+    subgraph Entrypoints["入口"]
+        ST["streamlit_app.py"]
+        API["api_server.py /api/agent/query"]
+        N8N["n8n workflow"]
+        Demo["demo/text2sql_utils.py"]
+    end
+
+    subgraph Runtime["统一 Agent Runtime"]
+        Factory["src/agent/factory.py"]
+        Graph["src/agent/runtime.py"]
+        Profile["src/agent/profiles.py"]
+        SafeSQL["src/utils/safe_sql.py"]
+        Provider["src/agent/llm.py"]
+    end
+
+    subgraph Knowledge["数据与知识"]
+        Schema["schema/znjz_text2sql_schema.md"]
+        DB["MySQL znjz"]
+    end
+
+    subgraph Models["模型"]
+        Ark["Volcengine Ark glm-5.2"]
+        DeepSeek["DeepSeek optional fallback"]
+    end
+
+    ST --> Factory
+    API --> Factory
+    N8N --> API
+    Demo --> Factory
+    Factory --> Graph
+    Graph --> Profile
+    Graph --> SafeSQL
+    Graph --> Provider
+    Profile --> Schema
+    SafeSQL --> DB
+    Provider --> Ark
+    Provider -. "LLM_PROVIDER=deepseek" .-> DeepSeek
 ```
 
-📖 **详细部署指南**：[QUICK_START.md](QUICK_START.md) - 包含环境准备、常见问题、目录结构等完整说明
+## Agent 流程
 
----
-
-## 📚 使用文档
-
-### Web应用使用（推荐）
-
-启动Web应用后，访问 http://localhost:7860
-
-**使用步骤**：
-1. 选择业务场景（场景1-5）
-2. 输入自然语言问题
-3. 点击"生成报告"
-4. 查看结果：
-   - SQL查询语句
-   - 查询结果数据
-   - 数据可视化图表
-   - AI数据分析
-   - 网络信息补充
-   - 下载报告（Markdown/PDF/Word）
-
-**示例问题**：
-- 场景1：分析2023-2024年融资趋势，按行业统计融资金额和融资数量
-- 场景2：分析广东省深圳市的产业分布，统计各行业企业数量
-- 场景3：分析科技行业近5年的发展趋势
-
-详细使用指南：[WEB_APP_GUIDE.md](WEB_APP_GUIDE.md)
-
-### API 调用示例
-
-#### Python 调用
-
-```python
-import requests
-
-# 推荐：统一 Agent Runtime
-response = requests.post(
-    "http://localhost:8000/api/agent/query",
-    json={
-        "question": "按行业统计企业数量 Top 10",
-        "scenario": "industry"
-    }
-)
-
-result = response.json()
-print(f"安全SQL: {result['safe_sql']}")
-print(f"查询结果: {result['rows']}")
-print(f"分析: {result['analysis']}")
+```mermaid
+stateDiagram-v2
+    [*] --> classify_intent
+    classify_intent --> retrieve_schema
+    retrieve_schema --> generate_sql
+    generate_sql --> validate_sql
+    validate_sql --> execute_sql: safe
+    validate_sql --> [*]: rejected
+    execute_sql --> profile_result: success
+    execute_sql --> repair_sql: error and retry <= 2
+    execute_sql --> [*]: retries exhausted
+    repair_sql --> validate_sql
+    profile_result --> decide_chart_search_compute
+    decide_chart_search_compute --> analyze
+    analyze --> compose_report
+    compose_report --> reflect_quality
+    reflect_quality --> [*]
 ```
 
-#### cURL 调用
+核心约束：
 
-```bash
-curl -X POST http://localhost:8000/api/agent/query \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "统计企业经营状态分布",
-    "scenario": "data_insight"
-  }'
-```
+- 只允许 SELECT。
+- 拒绝多语句。
+- 拒绝非白名单表。
+- 自动补 `LIMIT`。
+- SQL 执行失败最多修复重试 2 次。
+- 空数据必须明确说明，不编造结论。
+- 企业详情先聚合一对多事实子查询，再 JOIN 企业主表。
 
-### Demo 示例
+## SQL 生成提示词
 
-#### 场景1：数据洞察
+`znjz` profile 的提示词不只依赖长 schema，还显式内置了：
 
-```bash
-python demo/scenario_1_data_insight.py
-```
+- 高频字段地图：自然语言表达到真实表和字段的映射。
+- 易错字段反例：例如禁止生成 `industry_name`、`city_name`、`company_name`、`finance_round` 等当前库不存在的字段。
+- 场景决策规则：分布、Top、趋势、区间、企业详情等问题的 SQL 形态。
+- 标准问题模板：经营状态、行业 Top、融资轮次、招投标年度、资质年份、地区分布、成立趋势、投资 Top、注册资本区间、企业详情。
 
-生成报告包含：
-- 生成的 SQL 查询
-- 数据概览表格
-- 趋势图表（自动推断类型）
-- LLM 数据分析与解读
-- 网络信息补充
-- 业务建议与结论
+## API
 
-输出文件：
-- `demo/output/scenario_1_data_insight_YYYYMMDD_HHMMSS.md`
-- `demo/output/scenario_1_data_insight_YYYYMMDD_HHMMSS.pdf`
-- `demo/output/scenario_1_data_insight_YYYYMMDD_HHMMSS.docx`
+### `POST /api/agent/query`
 
-#### 场景2-3：地区产业分析、行业分析
+请求：
 
-```bash
-python demo/scenario_2_regional_industry.py
-python demo/scenario_3_industry_analysis.py
-```
-
----
-
-## 🔧 配置说明
-
-### 环境变量配置
-
-`.env` 文件配置项：
-
-```bash
-# 默认 LLM：火山方舟 Coding Plan
-LLM_PROVIDER=volcengine_ark
-VOLCENGINE_ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/coding/v3
-VOLCENGINE_ARK_API_KEY=your-volcengine-ark-api-key-here
-VOLCENGINE_ARK_MODEL=glm-5.2
-MODEL_TEMPERATURE=0.1
-
-# 可选备用 LLM：DeepSeek
-DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_API_KEY=your-deepseek-api-key-here
-DEEPSEEK_MODEL=deepseek-v4-flash
-
-# Streamlit 公网访问口令
-APP_PASSWORD=change-me
-
-# 数据库配置 - znjz 智能制造实验库
-DB_HOST_SCENARIO_1_3=your-host
-DB_PORT_SCENARIO_1_3=3306
-DB_NAME_SCENARIO_1_3=znjz
-DB_USER_SCENARIO_1_3=znjz
-DB_PASSWORD_SCENARIO_1_3=your-password
-
-# 旧库兼容配置（可选）
-DB_HOST_SCENARIO_4_5=your-host
-DB_PORT_SCENARIO_4_5=3306
-DB_NAME_SCENARIO_4_5=gaaiyun_2
-DB_USER_SCENARIO_4_5=your-user
-DB_PASSWORD_SCENARIO_4_5=your-password
-```
-
-### 支持的模型
-
-**OpenAI-compatible Provider**：
-
-| Provider | 默认模型 | 配置方式 |
-|----------|----------|----------|
-| 火山方舟 Coding Plan | `glm-5.2` | `LLM_PROVIDER=volcengine_ark` + `VOLCENGINE_ARK_*` |
-| DeepSeek（备用） | `deepseek-v4-flash` | `LLM_PROVIDER=deepseek` + `DEEPSEEK_*` |
-
-生产部署时不要提交 `.env` 或 `.streamlit/secrets.toml`，请在 Streamlit Cloud Advanced settings 中填写同名 Secrets。
-
-Streamlit Cloud 部署时选择 `main` 分支，Main file path 填 `streamlit_app.py`，不要填 `/streamlit_app.py`。详细步骤见 [`docs/STREAMLIT_DEPLOY.md`](docs/STREAMLIT_DEPLOY.md)。
-
----
-
-## 📖 API 文档
-
-### 核心接口
-
-#### 1. 统一 Agent 查询接口
-
-**POST** `/api/agent/query`
-
-生成 SQL、进行安全校验、执行查询并返回分析报告。
-
-**请求参数**：
 ```json
 {
-  "question": "统计企业经营状态分布",
-  "scenario": "data_insight",
-  "password": "可选，配置 APP_PASSWORD 时需要"
+  "question": "按行业统计企业数量 Top 10",
+  "scenario": "industry",
+  "password": "optional-app-password"
 }
 ```
 
-**响应**：
+响应包含：
+
 ```json
 {
   "success": true,
-  "sql": "SELECT ...",
-  "safe_sql": "SELECT ... LIMIT 1000",
-  "columns": ["status", "cnt"],
-  "rows": [{"status": "存续", "cnt": 100}],
-  "row_count": 1,
-  "analysis": "当前返回结果显示...",
-  "report": "# Text2SQL 分析报告",
-  "chart": {"type": "bar", "x": "status", "y": "cnt"},
-  "trace": [{"node": "reflect_quality", "status": "ok"}]
+  "sql": "...",
+  "safe_sql": "...",
+  "columns": [],
+  "rows": [],
+  "row_count": 0,
+  "analysis": "...",
+  "report": "...",
+  "chart": {},
+  "safety": {},
+  "trace": []
 }
 ```
 
-旧接口 `/api/query`、`/api/query/llm`、`/api/query/vanna` 继续保留，用于兼容已有脚本。
+旧接口 `/api/query`、`/api/query/llm`、`/api/query/vanna` 仍保留兼容，但新开发默认使用 `/api/agent/query`。
 
-#### 2. 报告接口
+## 目录结构
 
-**POST** `/api/report`
-
-生成完整的分析报告。
-
-**请求参数**：
-```json
-{
-  "question": "分析融资趋势",
-  "scenario": "data_insight",
-  "format": "markdown"
-}
-```
-
-**响应**：
-```json
-{
-  "report": "# 报告内容...",
-  "charts": ["chart1.png"],
-  "format": "markdown"
-}
-```
-
-完整 API 文档：http://localhost:8000/docs
-
----
-
-## 🗂️ 项目结构
-
-```
-text2sql/
-├── web_app.py                 # Web应用主程序（推荐使用）
-├── api_server.py              # API服务（8000端口）
-├── api/
-│   └── vanna_server.py        # Vanna服务（5000端口）
-├── schema/                    # Schema工程（核心）
-│   ├── gaaiyun_schema.md      # 场景1-3表结构（9张表）
-│   ├── gaaiyun_2_schema.md    # 场景4-5表结构（20张表）
-│   └── question_sql_examples.md  # Few-shot示例（25+配对）
-├── demo/                      # Demo示例
-│   ├── text2sql_utils.py      # 核心工具函数
-│   ├── scenario_1_data_insight.py      # 场景1示例
-│   ├── scenario_2_regional_industry.py # 场景2示例
-│   ├── scenario_3_industry_analysis.py # 场景3示例
-│   └── output/                # Demo输出目录
+```text
+.
+├── streamlit_app.py                 # Streamlit Cloud 主入口
+├── api_server.py                    # FastAPI，含 /api/agent/query
 ├── src/
-│   └── utils/                 # 核心工具模块
-│       ├── config.py          # 配置管理
-│       ├── chart_generator.py # 图表生成（专业样式）
-│       ├── web_search.py      # 网络搜索（智能关键词提取）
-│       └── document_generator.py  # 文档生成（MD/PDF/Word）
-├── scripts/                   # 工具脚本
-│   ├── deploy.bat/sh          # API服务部署脚本
-│   ├── start_web.bat/sh       # Web应用启动脚本
-│   ├── test_db_simple.py      # 数据库连接测试
-│   ├── test_quick.py          # 完整功能测试
-│   └── check_security.py      # 安全检查脚本
-├── docs/                      # 项目文档
-│   ├── SECURITY_CONFIG.md     # 安全配置指南
-│   ├── SECURITY_CHECKLIST.md  # 安全检查清单
-│   └── n8n_integration.md     # n8n工作流集成指南
-├── prompts/                   # 优化的提示词模板
-│   ├── scenario_1_data_insight_optimized.md
-│   └── scenario_4_investment_list_optimized.md
-├── .env                       # 本地配置（不提交到Git）
-├── .env.example               # 配置模板
-├── .gitignore                 # Git忽略规则
-├── requirements.txt           # Python依赖列表
-├── README.md                  # 项目说明文档
-├── WEB_APP_GUIDE.md          # Web应用使用指南
-├── TEST_RESULTS.md           # 测试报告
-└── FINAL_OPTIMIZATION.md     # 最终优化报告
+│   ├── agent/                       # 当前主线 Agent Runtime
+│   └── utils/safe_sql.py            # SQL 安全校验和 LIMIT 改写
+├── schema/
+│   └── znjz_text2sql_schema.md      # znjz Text2SQL 知识库
+├── docs/
+│   ├── ARCHITECTURE.md              # 架构说明和 Mermaid 图
+│   ├── STREAMLIT_DEPLOY.md          # Streamlit Cloud 部署手册
+│   ├── ACCEPTANCE_RESULTS.md        # 真实验收记录
+│   └── legacy/                      # 早期历史文档归档
+├── workflows/                       # n8n 工作流
+├── demo/                            # 旧 demo 入口，内部委托 AgentRuntime
+├── scripts/                         # 运维、验收和 legacy 工具脚本
+└── tests/                           # 单元、API、部署契约和安全测试
 ```
 
-### 核心文件说明
+## scripts 目录边界
 
-**应用入口**：
-- `web_app.py` - Web界面应用（推荐，端口7860）
-- `api_server.py` - RESTful API服务（端口8000）
+当前维护脚本：
 
-**核心模块**：
-- `demo/text2sql_utils.py` - Text2SQL核心逻辑
-- `src/utils/` - 工具模块（图表、搜索、文档生成）
+| 脚本 | 用途 |
+| --- | --- |
+| `scripts/check_streamlit_readiness.py` | 检查 Streamlit 部署入口、依赖、secrets 模板和文档契约 |
+| `scripts/run_agent_acceptance.py` | 用 `znjz` 跑 10 个标准验收问题并保存 JSON/Markdown 产物 |
+| `scripts/check_security.py` | 提交前敏感信息扫描 |
+| `scripts/test_db_simple.py` | 数据库连通性辅助检查 |
 
-**Schema工程**：
-- `schema/` - 数据库表结构和Few-shot示例
+兼容或 legacy 脚本：
 
-**配置文件**：
-- `.env` - 本地环境变量（敏感信息，不提交）
-- `.env.example` - 配置模板（可提交）
+| 脚本类型 | 说明 |
+| --- | --- |
+| `train_vanna*.py`、`generate_vanna_training.py`、`setup_vanna_kiro.py` | Vanna/旧训练链路保留，不是第一版主依赖 |
+| `extract_schema*.py` | 早期 schema 提取辅助工具 |
+| `export_excel.py`、`export_word.py`、`web_search.py` | 旧 API 周边能力，保留兼容 |
+| `deploy.*`、`start_web.*` | 旧 Web/API 启动脚本，不用于 Streamlit Cloud |
+| `test_quick.py`、`validate_sql.py` | 早期手动检查脚本，保留但不作为主验收标准 |
 
----
+后续如果要物理清理脚本，应先更新对应测试和旧文档引用，再移动到 `scripts/legacy/` 或删除。
 
-## 🔒 安全说明
+## 测试
 
-### 重要提醒
+常用验证：
 
-⚠️ **永远不要将 `.env` 文件提交到 Git**
-
-本项目使用环境变量管理敏感信息（API 密钥、数据库密码），确保安全性。
-
-### 安全检查
-
-提交代码前运行安全检查：
-
-```bash
-python scripts/check_security.py
+```powershell
+python scripts/check_streamlit_readiness.py
+python -m pytest -q
+black --check scripts/ tests/
+isort --check-only scripts/ tests/
+flake8 scripts/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
 ```
 
-### 安全最佳实践
+当前已验证状态见 [docs/ACCEPTANCE_RESULTS.md](docs/ACCEPTANCE_RESULTS.md)。
 
-1. **配置管理**
-   - 使用 `.env` 文件存储敏感信息
-   - 使用 `Config` 类加载配置
-   - 不在代码中硬编码密码和密钥
+## 安全
 
-2. **Git 提交**
-   - 提交前运行 `check_security.py`
-   - 检查 `git diff` 内容
-   - 确认 `.env` 不在提交列表中
+- 不提交 `.env`、`.env.local`、`.streamlit/secrets.toml`、`config.json`。
+- 生产 secrets 只放 Streamlit Cloud Advanced settings。
+- SQL 执行前统一经过 `safe_sql.enforce_safe_sql()`。
+- Streamlit 第一版只做简单 `APP_PASSWORD` 口令，不做账号体系。
+- Streamlit Cloud 访问 MySQL 时，如果没有固定出口 IP，需要临时开放访问或改用数据库代理/云数据库白名单方案。
 
-3. **密钥管理**
-   - 定期更换 API 密钥
-   - 使用最小权限原则
-   - 不分享 `.env` 文件
+## 文档入口
 
-详细安全指南：[docs/SECURITY_CONFIG.md](docs/SECURITY_CONFIG.md)
-
----
-
-## 📊 性能指标
-
-| 指标 | 数值 | 说明 |
-|------|------|------|
-| SQL 生成时间 | 2-5 秒 | LLM 模式 |
-| SQL 生成时间 | 1-3 秒 | Vanna 模式 |
-| 查询执行时间 | 0.5-2 秒 | 取决于数据量 |
-| 报告生成时间 | 5-10 秒 | 包含图表和网络搜索 |
-| 并发支持 | 10+ | 同时处理多个请求 |
-
----
-
-## 🤝 贡献指南
-
-欢迎贡献代码、报告问题或提出建议！
-
-### 贡献流程
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
-
-### 开发规范
-
-- 遵循 PEP 8 代码规范
-- 添加必要的注释和文档
-- 提交前运行安全检查
-- 编写单元测试
-
----
-
-## 📄 许可证
-
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
-
----
-
-## 🚀 Agent升级
-
-### 下一代智能Agent系统
-
-我们正在将Text2SQL系统升级为具有**自主决策、反思、规划**能力的智能Agent，实现：
-
-**核心能力**
-- 🧠 **ReAct循环**：思考-行动-观察的自主决策
-- 🔄 **错误恢复**：SQL报错自动修复和智能重试
-- 🐍 **Python执行**：安全沙箱执行复杂计算
-- 💭 **反思能力**：质量评估和自我改进
-- 📋 **任务规划**：复杂问题自动分解
-- 🧠 **记忆系统**：短期和长期记忆管理
-- 🎨 **智能决策**：自主决定图表类型、是否搜索等
-- 📊 **多样化报告**：动态模板和丰富视觉元素
-
-**技术栈**
-- **LangGraph** - Agent框架和状态管理
-- **AgentRun** - Python代码安全沙箱
-- **ChromaDB** - 向量记忆存储
-- **LLM决策** - 智能工具选择和参数优化
-
-**实施计划**
-- Phase 1: 基础Agent能力（2周）
-- Phase 2: 错误处理与重试（1周）
-- Phase 3: Python代码执行（1周）
-- Phase 4: 记忆系统（1周）
-- Phase 5: 反思与规划（1周）
-- Phase 6: 报告多样化（1周）
-- Phase 7: 集成测试与优化（1周）
-
-📖 **详细方案**：[AGENT_UPGRADE.md](AGENT_UPGRADE.md)
-
----
-
-## 📞 联系方式
-
-- 项目主页：https://github.com/gaaiyun/text2sql-analysis
-- 问题反馈：https://github.com/gaaiyun/text2sql-analysis/issues
-- 作者：gaaiyun
-
----
-
-## 🙏 致谢
-
-- [阿里云百炼](https://dashscope.console.aliyun.com/) - 提供 LLM API 服务
-- [Vanna AI](https://vanna.ai/) - Text2SQL 引擎
-- [n8n](https://n8n.io/) - 工作流编排工具
-
----
-
-<div align="center">
-
-**⭐ 如果这个项目对您有帮助，请给我们一个 Star！**
-
-Made by gaaiyun
-
-</div>
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [docs/STREAMLIT_DEPLOY.md](docs/STREAMLIT_DEPLOY.md)
+- [docs/ACCEPTANCE_RESULTS.md](docs/ACCEPTANCE_RESULTS.md)
+- [docs/SECURITY_CONFIG.md](docs/SECURITY_CONFIG.md)
+- [docs/n8n_integration.md](docs/n8n_integration.md)
+- [scripts/README.md](scripts/README.md)

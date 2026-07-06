@@ -50,9 +50,12 @@ stateDiagram-v2
 
 ## Streamlit Cloud 配置
 
-1. 将仓库同步到 GitHub。
-2. 在 Streamlit Cloud 新建应用，选择本仓库和 `streamlit_app.py`。
-3. 在 Advanced settings 的 Secrets 中填写以下配置：
+1. 将 PR 合并到 `main` 后，在 Streamlit Cloud 新建应用。
+2. 选择仓库 `gaaiyun/text2sql-analysis`。
+3. Branch 选择 `main`。
+4. Main file path 填 `streamlit_app.py`。
+5. 注意：不要填写 `/streamlit_app.py`，路径前面不能带 `/`。
+6. 在 Advanced settings 的 Secrets 中填写以下配置：
 
 ```toml
 LLM_PROVIDER = "volcengine_ark"
@@ -77,14 +80,31 @@ DB_PASSWORD_SCENARIO_1_3 = "your-db-password"
 
 ## 当前部署状态
 
-- GitHub PR：`feat/agent-runtime-streamlit` -> `main`
-- Streamlit Cloud 公网 URL：尚未绑定。本环境没有你的 Streamlit Cloud 控制台会话，不能代填 Advanced settings secrets。
-- 完成公网发布需要账号所有者在 Streamlit Cloud 中创建 App，并粘贴上方 secrets。
+- GitHub PR：`feat/agent-runtime-streamlit` -> `main`，合并后 Streamlit Cloud 应使用 `main` 分支。
+- Streamlit Cloud 公网 URL：尚未绑定。完成公网发布需要在 Streamlit Cloud 中创建 App，并粘贴上方 secrets。
 - 本地验收已完成，详见 `docs/ACCEPTANCE_RESULTS.md`。
+
+## 部署流程
+
+```mermaid
+flowchart TD
+    PR["PR #5: feat/agent-runtime-streamlit"] --> CI["GitHub Actions: test 3.11 / test 3.12 / lint"]
+    CI --> Review["合并前 Review + 本地测试"]
+    Review --> Merge["Merge PR into main"]
+    Merge --> StreamlitCreate["Streamlit Cloud: New app"]
+    StreamlitCreate --> Repo["Repository: gaaiyun/text2sql-analysis"]
+    Repo --> Branch["Branch: main"]
+    Branch --> Entry["Main file path: streamlit_app.py"]
+    Entry --> Secrets["Advanced settings: Secrets"]
+    Secrets --> Smoke["登录口令 + 查询烟测"]
+    Smoke --> Share["分享公网 URL"]
+```
 
 ## 发布前检查清单
 
 - [ ] PR CI 全部通过。
+- [ ] Streamlit Cloud 选择 `main` 分支。
+- [ ] Main file path 为 `streamlit_app.py`，不是 `/streamlit_app.py`。
 - [ ] 火山方舟和 DeepSeek Key 已轮换，未使用聊天中出现过的旧 Key。
 - [ ] Streamlit Cloud Secrets 已配置 `APP_PASSWORD`、`VOLCENGINE_ARK_*`、`DB_*`。
 - [ ] MySQL 临时允许 Streamlit Cloud 访问，或已配置安全代理/云数据库白名单。

@@ -87,6 +87,20 @@ def run_checks(repo_root: Path) -> list[CheckResult]:
             )
         )
 
+    deployment_doc_requirements = {
+        "deploy_branch_main": "Branch 选择 `main`",
+        "deploy_entrypoint_no_leading_slash": "不要填写 `/streamlit_app.py`",
+        "deploy_mermaid_flow": "flowchart TD",
+    }
+    for name, required_text in deployment_doc_requirements.items():
+        results.append(
+            CheckResult(
+                name=name,
+                ok=required_text in deploy_doc,
+                detail="documented" if required_text in deploy_doc else "missing",
+            )
+        )
+
     local_secret = repo_root / ".streamlit" / "secrets.toml"
     results.append(
         CheckResult(

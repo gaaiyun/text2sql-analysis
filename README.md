@@ -414,6 +414,8 @@ DB_PASSWORD_SCENARIO_4_5=your-password
 
 生产部署时不要提交 `.env` 或 `.streamlit/secrets.toml`，请在 Streamlit Cloud Advanced settings 中填写同名 Secrets。
 
+Streamlit Cloud 部署时选择 `main` 分支，Main file path 填 `streamlit_app.py`，不要填 `/streamlit_app.py`。详细步骤见 [`docs/STREAMLIT_DEPLOY.md`](docs/STREAMLIT_DEPLOY.md)。
+
 ---
 
 ## 📖 API 文档

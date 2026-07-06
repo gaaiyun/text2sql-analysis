@@ -62,10 +62,12 @@
 
 Streamlit Cloud 当前打开为登录页，当前环境没有可用账号登录态，无法代替账号所有者创建 Cloud App 或填写 Advanced settings secrets。公网发布需要在 Streamlit Cloud 控制台完成：
 
-1. 选择 GitHub 仓库和 `streamlit_app.py`。
-2. 按 `docs/STREAMLIT_DEPLOY.md` 配置 secrets。
-3. 轮换任何曾在聊天中出现过的模型 Key。
-4. 确认 MySQL 允许 Streamlit Cloud 访问。
+1. PR 合并到 `main` 后，选择 GitHub 仓库 `gaaiyun/text2sql-analysis`。
+2. Branch 选择 `main`。
+3. Main file path 填 `streamlit_app.py`，不要填 `/streamlit_app.py`。
+4. 按 `docs/STREAMLIT_DEPLOY.md` 配置 secrets。
+5. 轮换任何曾在聊天中出现过的模型 Key。
+6. 确认 MySQL 允许 Streamlit Cloud 访问。
 
 ## 注意
 

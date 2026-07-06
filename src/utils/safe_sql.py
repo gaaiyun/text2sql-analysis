@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Sequence, Set
 
 import sqlparse
-from sqlparse.sql import Identifier, IdentifierList, Statement, Token, TokenList
+from sqlparse.sql import Identifier, IdentifierList, Parenthesis, Statement, Token, TokenList
 from sqlparse.tokens import DML, Keyword, Name, Whitespace
 
 
@@ -209,6 +209,12 @@ class SafeSQLEnforcer:
             raw = raw.split(" ")[0].split(".")[-1].strip("`\"")
             return raw or None
 
+        def _contains_parenthesized_select(ident: Identifier) -> bool:
+            for child in getattr(ident, "tokens", []):
+                if isinstance(child, Parenthesis) and "SELECT" in child.value.upper():
+                    return True
+            return False
+
         def _walk(tok_list: TokenList) -> None:
             seen_from_or_join = False
             for tok in tok_list.tokens:
@@ -224,13 +230,19 @@ class SafeSQLEnforcer:
                 if seen_from_or_join:
                     if isinstance(tok, IdentifierList):
                         for ident in tok.get_identifiers():
+                            if isinstance(ident, Identifier) and _contains_parenthesized_select(ident):
+                                _walk(ident)
+                                continue
                             name = _identifier_name(ident)
                             if name:
                                 tables.append(name)
                     elif isinstance(tok, Identifier):
-                        name = _identifier_name(tok)
-                        if name:
-                            tables.append(name)
+                        if _contains_parenthesized_select(tok):
+                            _walk(tok)
+                        else:
+                            name = _identifier_name(tok)
+                            if name:
+                                tables.append(name)
                     elif tok.ttype is Name:
                         tables.append(tok.value.strip("`\""))
                     # ( 或子查询：不计入表，仍要递归找内部

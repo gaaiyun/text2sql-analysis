@@ -30,6 +30,7 @@ config.json
 .env
 .env.local
 .env.*.local
+.streamlit/secrets.toml
 *.local.json
 *.local.yaml
 local_config.py

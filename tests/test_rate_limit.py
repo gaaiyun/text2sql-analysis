@@ -81,6 +81,7 @@ class TestRateLimitConfig(unittest.TestCase):
 
         # 检查限流装饰器是否存在
         rate_limits = {
+            "/api/agent/query": "60/minute",
             "/api/query": "100/minute",
             "/api/query/llm": "100/minute",
             "/api/query/vanna": "100/minute",

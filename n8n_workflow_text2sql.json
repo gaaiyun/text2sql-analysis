@@ -27,13 +27,17 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:5000/api/v0/generate_sql",
+        "url": "http://localhost:8000/api/agent/query",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
             {
               "name": "question",
               "value": "={{ $json.originalQuery }}"
+            },
+            {
+              "name": "scenario",
+              "value": "={{ $json.scenario }}"
             }
           ]
         },
@@ -47,7 +51,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const sqlResult = $input.first().json;\nconst taskInfo = $('Task Classifier').first().json;\n\nif (!sqlResult.sql && !sqlResult.query) {\n  return [{\n    json: {\n      error: 'SQL generation failed',\n      message: sqlResult.error || 'Unknown error',\n      scenario: taskInfo.scenario\n    }\n  }];\n}\n\nconst sql = sqlResult.sql || sqlResult.query;\n\nreturn [{\n  json: {\n    sql: sql,\n    scenario: taskInfo.scenario,\n    originalQuery: taskInfo.originalQuery,\n    needsAnalysis: ['数据洞察', '地区产业', '行业分析'].includes(taskInfo.scenario)\n  }\n}];"
+        "jsCode": "const agentResult = $input.first().json;\nconst taskInfo = $('Task Classifier').first().json;\n\nif (!agentResult.success) {\n  return [{\n    json: {\n      error: 'Agent query failed',\n      message: agentResult.error || 'Unknown error',\n      scenario: taskInfo.scenario,\n      trace: agentResult.trace || []\n    }\n  }];\n}\n\nconst sql = agentResult.safe_sql || agentResult.sql;\n\nreturn [{\n  json: {\n    sql: sql,\n    rows: agentResult.rows || [],\n    columns: agentResult.columns || [],\n    analysis: agentResult.analysis || '',\n    report: agentResult.report || '',\n    scenario: taskInfo.scenario,\n    originalQuery: taskInfo.originalQuery,\n    needsAnalysis: ['数据洞察', '地区产业', '行业分析'].includes(taskInfo.scenario)\n  }\n}];"
       },
       "id": "data-processor",
       "name": "Data Processor",

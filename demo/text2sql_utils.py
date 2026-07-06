@@ -10,11 +10,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.utils.config import Config
-from src.utils.chart_generator import generate_chart_auto
 from src.utils.web_search import search
 from src.utils.document_generator import pdf_from_markdown_sections, word_from_sections
-import pymysql
-from openai import OpenAI
+from src.agent.factory import build_agent_runtime
+from src.utils.safe_sql import enforce_safe_sql
 from datetime import datetime
 import os
 
@@ -30,17 +29,23 @@ class Text2SQLPipeline:
         self.scenario = scenario
         self.config = Config.load()
         self.db_config = self.config.get_database_config(scenario)
-        self.api_key = self.config.get_api_key('dashscope')
-        self.base_url = os.environ.get('DASHSCOPE_BASE_URL', 'https://coding.dashscope.aliyuncs.com/v1')
-        self.model = os.environ.get('MODEL_NAME', 'qwen3.5-plus')
-        self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+        self._runtime = None
+        self._last_result = None
+
+    def _get_runtime(self):
+        """懒加载统一 Agent Runtime。"""
+        if self._runtime is None:
+            self._runtime = build_agent_runtime(profile_name="znjz", scenario_key="scenario_1_3")
+        return self._runtime
+
+    def _agent_scenario(self) -> str:
+        if "4_5" in self.scenario:
+            return "due_diligence"
+        return "data_insight"
         
     def load_schema(self) -> str:
         """加载Schema"""
-        if 'scenario_1_3' in self.scenario:
-            schema_file = "gaaiyun_schema.md"
-        else:
-            schema_file = "gaaiyun_2_schema.md"
+        schema_file = "znjz_text2sql_schema.md" if "scenario_1_3" in self.scenario else "gaaiyun_2_schema.md"
         
         schema_path = Path(__file__).parent.parent / "schema" / schema_file
         with open(schema_path, 'r', encoding='utf-8') as f:
@@ -53,61 +58,12 @@ class Text2SQLPipeline:
             return f.read()
     
     def generate_sql(self, question: str) -> str:
-        """使用LLM生成SQL"""
-        schema = self.load_schema()
-        examples = self.load_examples()
-        
-        prompt = f"""你是SQL专家。根据Schema和示例生成MySQL查询。
-
-## Schema
-{schema[:2000]}
-
-## Few-shot示例
-{examples[:1000]}
-
-## 重要规则
-1. SELECT子句中，每个字段后面必须有逗号（最后一个字段除外）
-2. JOIN必须使用COLLATE: ON a.eid = b.eid COLLATE utf8mb4_unicode_ci
-3. 时间范围默认近3年
-4. LIMIT 1000
-5. **GROUP BY和ORDER BY必须使用原始字段名或表达式，不能使用SELECT中的别名**
-
-## 正确的SQL格式示例
-SELECT 
-    ic.name AS 行业名,
-    COUNT(*) AS 数量,
-    SUM(amount) AS 总金额
-FROM 融资数据 rf
-LEFT JOIN 企业行业代码 ic ON rf.eid = ic.eid COLLATE utf8mb4_unicode_ci
-WHERE rf.round_date >= '2023-01-01'
-GROUP BY ic.name
-ORDER BY SUM(amount) DESC
-LIMIT 1000
-
-注意：
-- 每个字段后面都有逗号
-- GROUP BY使用ic.name（原始字段），不是"行业名"（别名）
-- ORDER BY使用SUM(amount)（原始表达式），不是"总金额"（别名）
-
-## 问题
-{question}
-
-## SQL（必须包含逗号）
-"""
-        
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=600,
-            temperature=0.1
-        )
-        
-        sql = response.choices[0].message.content.strip()
-        sql = sql.replace('```sql', '').replace('```', '').strip()
-        
-        # 验证并修复SQL
-        sql = self._validate_and_fix_sql(sql)
-        return sql
+        """使用统一 Agent Runtime 生成并校验 SQL。"""
+        result = self._get_runtime().query(question, scenario=self._agent_scenario())
+        self._last_result = result
+        if not result.success:
+            raise RuntimeError(result.error or "Agent Runtime 查询失败")
+        return result.safe_sql or result.sql or ""
     
     def _validate_and_fix_sql(self, sql: str) -> str:
         """验证并修复SQL语法"""
@@ -178,61 +134,39 @@ LIMIT 1000
     
     def execute_sql(self, sql: str) -> tuple:
         """执行SQL查询"""
-        conn = pymysql.connect(**self.db_config)
-        cur = conn.cursor()
-        cur.execute(sql)
-        columns = [desc[0] for desc in cur.description]
-        rows = cur.fetchall()
-        cur.close()
-        conn.close()
+        if self._last_result and sql in {self._last_result.sql, self._last_result.safe_sql}:
+            columns = self._last_result.columns
+            rows = [tuple(row.get(col) for col in columns) for row in self._last_result.rows]
+            return columns, rows
+
+        runtime = self._get_runtime()
+        safety = enforce_safe_sql(sql, allowed_tables=runtime.profile.allowed_tables, max_limit=1000)
+        if not safety.is_safe:
+            raise RuntimeError("; ".join(safety.errors) or "SQL安全校验未通过")
+        query_result = runtime.sql_executor(safety.safe_sql or sql)
+        columns = query_result.get("columns", [])
+        rows = [tuple(row.get(col) for col in columns) for row in query_result.get("rows", [])]
         return columns, rows
     
     def analyze_data(self, question: str, sql: str, columns: list, rows: list, search_results: list = None) -> str:
         """使用LLM分析数据，融合网络搜索结果"""
-        data_summary = f"查询返回{len(rows)}条记录，字段：{', '.join(columns)}\n"
-        if rows:
-            data_summary += f"前3条数据：\n"
-            for i, row in enumerate(rows[:3], 1):
-                data_summary += f"{i}. {dict(zip(columns, row))}\n"
-        
-        # 整合网络搜索信息
-        web_context = ""
-        if search_results:
-            web_context = "\n\n外部信息参考：\n"
-            for i, r in enumerate(search_results[:3], 1):
-                web_context += f"{i}. {r['title']}\n   {r['snippet'][:200]}...\n"
-        
-        prompt = f"""你是数据分析专家。根据查询结果和外部信息进行综合分析。
+        if self._last_result and sql in {self._last_result.sql, self._last_result.safe_sql}:
+            return self._last_result.analysis
 
-问题：{question}
+        if not rows:
+            return "### 数据概览\n\n查询结果为空，当前数据库没有返回对应数据。"
+        preview = [dict(zip(columns, row)) for row in rows[:3]]
+        return f"""### 数据概览
 
-SQL查询：
-{sql}
+查询返回 {len(rows)} 条记录，字段包括：{', '.join(columns)}。
 
-数据摘要：
-{data_summary}
-{web_context}
+### 数据预览
 
-请提供：
-1. 数据概览（3-5句话，说明查询结果的基本情况）
-2. 关键发现（3-5个要点，基于实际数据）
-3. 趋势分析（结合数据和外部信息）
-4. 业务建议（可操作的建议）
+{preview}
 
-要求：
-- 基于实际数据进行分析，不要编造数字
-- 如果有外部信息，自然地融合到分析中
-- 用中文回答，简洁专业
-- 使用markdown格式，用###标记小标题"""
-        
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1000,
-            temperature=0.3
-        )
-        
-        return response.choices[0].message.content.strip()
+### 分析局限性
+
+该分析基于当前 SQL 返回结果生成，未引入额外外部数据。"""
     
     def generate_chart(self, columns: list, rows: list, question: str, output_path: str) -> str:
         """生成图表（优先matplotlib，稳定可靠）"""
@@ -271,37 +205,7 @@ SQL查询：
     
     def web_search(self, query: str, num_results: int = 3) -> list:
         """网络搜索 - 提取关键词并搜索相关内容"""
-        # 使用LLM提取关键词
-        prompt = f"""从以下问题中提取2-3个核心关键词，用于网络搜索。
-
-问题：{query}
-
-要求：
-1. 提取地区、行业、主题等核心词
-2. 去掉"分析"、"查询"、"统计"等动词
-3. 只返回关键词，用空格分隔
-
-示例：
-问题：分析广州这几年的企业增长的特征
-关键词：广州 企业增长 发展趋势
-
-现在提取关键词："""
-        
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=50,
-                temperature=0.1
-            )
-            keywords = response.choices[0].message.content.strip()
-            print(f"搜索关键词：{keywords}")
-        except Exception as e:
-            print(f"关键词提取失败：{e}")
-            keywords = query
-        
-        # 添加时间范围和地域信息
-        search_query = f"{keywords} 2024 2025 最新发展"
+        search_query = f"{query} 2024 2025 最新发展"
         
         try:
             results = search(search_query, max_results=num_results)

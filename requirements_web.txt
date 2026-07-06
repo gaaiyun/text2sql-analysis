@@ -25,6 +25,8 @@ duckduckgo-search>=4.0.0
 
 # Web界面（新增）
 gradio>=4.0.0
+streamlit>=1.36.0
+langgraph>=0.2.0
 
 # 可选：更好的性能
 uvicorn>=0.25.0

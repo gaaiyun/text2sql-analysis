@@ -328,6 +328,7 @@ Main file path 填错了。应该填 `streamlit_app.py`，不要加开头的 `/`
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - [docs/STREAMLIT_DEPLOY.md](docs/STREAMLIT_DEPLOY.md)
+- [docs/BT_MYSQL_EXCEL_IMPORT.md](docs/BT_MYSQL_EXCEL_IMPORT.md)
 - [docs/ACCEPTANCE_RESULTS.md](docs/ACCEPTANCE_RESULTS.md)
 - [docs/SECURITY_CONFIG.md](docs/SECURITY_CONFIG.md)
 - [docs/n8n_integration.md](docs/n8n_integration.md)

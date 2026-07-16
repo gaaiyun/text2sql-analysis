@@ -5,8 +5,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.utils.safe_sql import SafeSQLEnforcer, SafeSQLReport, enforce_safe_sql
@@ -321,4 +319,31 @@ def test_comment_injection_drop_caught():
         "SELECT * FROM users; -- DROP TABLE users", allowed_tables=["users"]
     )
     # ; DROP 经过 denylist 应被拒
+    assert rep.is_safe is False
+
+
+def test_reject_mysql_into_outfile():
+    """MySQL SELECT 不得把查询结果写入服务器文件。"""
+    rep = enforce_safe_sql(
+        "SELECT * FROM users INTO OUTFILE '/tmp/users.csv'",
+        allowed_tables=["users"],
+    )
+    assert rep.is_safe is False
+
+
+def test_reject_mysql_into_dumpfile():
+    """MySQL SELECT 不得通过 DUMPFILE 写入服务器文件。"""
+    rep = enforce_safe_sql(
+        "SELECT password_hash FROM users INTO DUMPFILE '/tmp/hash.bin'",
+        allowed_tables=["users"],
+    )
+    assert rep.is_safe is False
+
+
+def test_reject_mysql_load_file():
+    """MySQL SELECT 不得读取数据库服务器上的本地文件。"""
+    rep = enforce_safe_sql(
+        "SELECT LOAD_FILE('/etc/passwd') FROM users",
+        allowed_tables=["users"],
+    )
     assert rep.is_safe is False

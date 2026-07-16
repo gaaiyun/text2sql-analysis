@@ -27,7 +27,7 @@ SQLi 攻击向量足够。
 |---|---|---|
 | 1 | 多语句 | sqlparse 拆出 >1 个 statement → reject（除非 `allow_multistatement=True`） |
 | 2 | 语句类型 | 只允许 `SELECT` 或 `WITH ... SELECT`，其它 reject |
-| 3 | Denylist 关键字 | 即使 sqlparse 把恶意字符串识别成 Identifier 也兜底拦 |
+| 3 | Denylist 关键字 | 即使 sqlparse 把恶意字符串识别成 Identifier 也兜底拦，并拒绝 MySQL `OUTFILE`、`DUMPFILE`、`LOAD_FILE()` 文件访问 |
 | 4 | 表白名单 | 提取 FROM/JOIN 后的表名，与 `allowed_tables` 比对 |
 | 5 | 强制 LIMIT | 缺 LIMIT 自动注入 `LIMIT max_limit`；已有但超上限 → 截断 |
 
@@ -60,8 +60,8 @@ cursor.execute(report.safe_sql)
 
 ```bash
 pytest tests/test_safe_sql.py
-# 38 测试通过：基础 SELECT / 拒绝 DML / 多语句 / 白名单 / LIMIT 改写 /
-# WITH CTE / 边界 / 注入风格
+# 覆盖基础 SELECT / 拒绝 DML / 多语句 / 白名单 / LIMIT 改写 /
+# WITH CTE / 边界 / 注入风格 / MySQL 文件读写
 ```
 
 ## 设计原则

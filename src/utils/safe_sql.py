@@ -20,8 +20,8 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Sequence, Set
 
 import sqlparse
-from sqlparse.sql import Identifier, IdentifierList, Parenthesis, Statement, Token, TokenList
-from sqlparse.tokens import DML, Keyword, Name, Whitespace
+from sqlparse.sql import Identifier, IdentifierList, Parenthesis, Statement, TokenList
+from sqlparse.tokens import DML, Keyword, Name
 
 
 @dataclass
@@ -69,6 +69,8 @@ class SafeSQLEnforcer:
         "INSERT", "UPDATE", "REPLACE", "GRANT", "REVOKE",
         "EXEC", "EXECUTE", "MERGE", "CALL", "HANDLER",
         "LOCK", "UNLOCK", "RENAME",
+        # MySQL permits file-system access inside otherwise valid SELECTs.
+        "OUTFILE", "DUMPFILE", "LOAD_FILE",
     }
 
     def __init__(self, *,

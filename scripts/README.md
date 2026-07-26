@@ -12,13 +12,14 @@
 | `run_agent_acceptance.py` | 用 `znjz` 跑 10 个标准验收问题，保存 JSON 和 Markdown 报告 | `python scripts/run_agent_acceptance.py` |
 | `check_security.py` | 提交前敏感信息扫描 | `python scripts/check_security.py` |
 | `test_db_simple.py` | 数据库连通性辅助检查 | `python scripts/test_db_simple.py` |
+| `export_mysql_text2sql_schema.py` | 从 MySQL `information_schema`、`SHOW CREATE TABLE` 和可选字段画像导出 Text2SQL 知识库 Markdown + DDL SQL | `python scripts/export_mysql_text2sql_schema.py --database your-db-name --profile-columns` |
 
 ## Legacy / 兼容脚本
 
 | 脚本 | 状态 |
 | --- | --- |
 | `train_vanna.py`、`train_vanna_simple.py`、`generate_vanna_training.py`、`setup_vanna_kiro.py` | Vanna/旧训练链路保留，非第一版强依赖 |
-| `extract_schema.py`、`extract_schema_essential.py` | 早期 schema 提取辅助工具 |
+| `extract_schema.py`、`extract_schema_essential.py` | 早期 schema 提取辅助工具；新 schema 导出请用 `export_mysql_text2sql_schema.py` |
 | `export_excel.py`、`export_word.py`、`web_search.py` | 旧 API 周边能力，保留兼容 |
 | `deploy.bat`、`deploy.sh`、`start_web.bat`、`start_web.sh` | 旧 Web/API 启动脚本，不用于 Streamlit Cloud |
 | `test_quick.py`、`validate_sql.py`、`langchain_config.md` | 早期手动检查或配置记录 |

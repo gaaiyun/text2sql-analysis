@@ -69,7 +69,7 @@ DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 DEEPSEEK_API_KEY = "your-deepseek-api-key-here"
 DEEPSEEK_MODEL = "deepseek-v4-flash"
 
-APP_PASSWORD = "change-me"
+APP_PASSWORD = "your-app-password"
 
 DB_HOST_SCENARIO_1_3 = "your-db-host"
 DB_PORT_SCENARIO_1_3 = "3306"

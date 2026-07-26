@@ -23,7 +23,7 @@
 ```powershell
 $env:LLM_PROVIDER="volcengine_ark"
 $env:VOLCENGINE_ARK_API_KEY="your-api-key"
-$env:APP_PASSWORD="change-me"
+$env:APP_PASSWORD="your-app-password"
 $env:DB_HOST_SCENARIO_1_3="your-db-host"
 $env:DB_PASSWORD_SCENARIO_1_3="your-password"
 ```
@@ -32,7 +32,7 @@ $env:DB_PASSWORD_SCENARIO_1_3="your-password"
 ```bash
 export LLM_PROVIDER="volcengine_ark"
 export VOLCENGINE_ARK_API_KEY="your-api-key"
-export APP_PASSWORD="change-me"
+export APP_PASSWORD="your-app-password"
 export DB_HOST_SCENARIO_1_3="your-db-host"
 export DB_PASSWORD_SCENARIO_1_3="your-password"
 ```

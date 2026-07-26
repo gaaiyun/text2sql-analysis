@@ -297,3 +297,19 @@ python -m pytest -q
 - ChainLens 已创建 GitHub 仓库并成功部署静态前端：`https://github.com/gaaiyun/chainlens`、`https://gaaiyun.github.io/chainlens/`，公网 HTTP 检查返回 `200`。
 - ChainLens API 仍待公网运行环境授权；GitHub Pages 不能运行 FastAPI、Python 或 DuckDB，当前 `api_server.py` 已完成本地实现和 HTTP 烟测。
 - ChainLens 详细交接入口：[G:\chainlens\docs\AGENT_HANDOFF.md](../../chainlens/docs/AGENT_HANDOFF.md)。后续涉及竞赛立意、确定性内核、报告产物或前端，应优先更新 ChainLens 的同一份活文档。
+
+### 2026-07-26 · ChainLens 公网实时链路完成
+
+- ChainLens 已从“静态快照 + 本地 API”升级为真实公网链路：
+  - GitHub Pages：`https://gaaiyun.github.io/chainlens/`
+  - Railway API：`https://chainlens-production.up.railway.app`
+- Railway API 使用已有 `znjz` MySQL。启动时通过 DuckDB MySQL 扩展只读
+  获取五个白名单分析视图并物化到内存 DuckDB，四个确定性内核的计算口径
+  保持不变，不需要把本地 DuckDB 或 Excel 上传 GitHub。
+- 公网 financing、qualification、network、region 四场景均返回非空结论、
+  证据、图表规格和结果表；公开页面桌面和手机 Playwright 验收通过，CORS
+  和浏览器控制台无异常。
+- 关键 commits：`4a4713e`（MySQL 数据后端）、`0dcb72d`（JSON `NaN`
+  安全处理）、`2c2312f`（实时前端与图表）、`f1f69e3`（移动图表标签）。
+- 当前项目接手应先看 `G:\chainlens\docs\AGENT_HANDOFF.md` 的最新追加日志。
+  Railway 仍为试用额度，大规模开放前需补额度、持久限流和监控。

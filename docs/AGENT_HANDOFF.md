@@ -294,4 +294,6 @@ python -m pytest -q
   - `python scripts/check_security.py` -> `[OK] security scan passed`
   - `python scripts/run_pipeline.py --output-dir G:\chainlens\data\outputs\acceptance_20260726` -> 融资、资质、网络、区域四场景全部成功
 - ChainLens 新增 `web/` 工业编辑室风格静态前端、`api_server.py` 和 GitHub Pages workflow；Playwright 已验证桌面/移动端首屏、场景切换、快照下载。
+- ChainLens 已创建 GitHub 仓库并成功部署静态前端：`https://github.com/gaaiyun/chainlens`、`https://gaaiyun.github.io/chainlens/`，公网 HTTP 检查返回 `200`。
+- ChainLens API 仍待公网运行环境授权；GitHub Pages 不能运行 FastAPI、Python 或 DuckDB，当前 `api_server.py` 已完成本地实现和 HTTP 烟测。
 - ChainLens 详细交接入口：[G:\chainlens\docs\AGENT_HANDOFF.md](../../chainlens/docs/AGENT_HANDOFF.md)。后续涉及竞赛立意、确定性内核、报告产物或前端，应优先更新 ChainLens 的同一份活文档。

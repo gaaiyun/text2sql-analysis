@@ -283,3 +283,15 @@ python -m pytest -q
 - 汇总了当前仓库状态、数据源、runtime 架构、部署路径、验收命令和历史恢复路径
 - 记录了 `znjz` 主实验库、6 个本地 Excel、schema 导出脚本和技能仓库的位置
 - 明确了这份文档以后要持续追加，不要拆分
+
+### 2026-07-26 · ChainLens 场景应用接手
+
+- 已提交本仓库交接与 schema 导出成果：`86dc194`。
+- 根据数据要素竞赛目标，继续维护姊妹项目 `G:\chainlens`：定位为“中小制造企业经营增信与产业体检”场景应用，不把 `text2sql-analysis` 的查询工具和场景应用混成一个仓库。
+- `G:\chainlens` 已完成四个确定性分析内核和 Agent 编排层，结论不依赖 LLM；已跑真实 DuckDB 数据并生成四个场景的 Markdown、HTML、PDF、PNG 产物。
+- ChainLens 当前真实验证：
+  - `python -m pytest -q` -> `11 passed in 17.76s`
+  - `python scripts/check_security.py` -> `[OK] security scan passed`
+  - `python scripts/run_pipeline.py --output-dir G:\chainlens\data\outputs\acceptance_20260726` -> 融资、资质、网络、区域四场景全部成功
+- ChainLens 新增 `web/` 工业编辑室风格静态前端、`api_server.py` 和 GitHub Pages workflow；Playwright 已验证桌面/移动端首屏、场景切换、快照下载。
+- ChainLens 详细交接入口：[G:\chainlens\docs\AGENT_HANDOFF.md](../../chainlens/docs/AGENT_HANDOFF.md)。后续涉及竞赛立意、确定性内核、报告产物或前端，应优先更新 ChainLens 的同一份活文档。

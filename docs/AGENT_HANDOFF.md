@@ -313,3 +313,21 @@ python -m pytest -q
   安全处理）、`2c2312f`（实时前端与图表）、`f1f69e3`（移动图表标签）。
 - 当前项目接手应先看 `G:\chainlens\docs\AGENT_HANDOFF.md` 的最新追加日志。
   Railway 仍为试用额度，大规模开放前需补额度、持久限流和监控。
+
+### 2026-07-28 · ChainLens 受控自主分析正式可用
+
+- 竞赛产品主线已在 `G:\chainlens` 完成自主分析升级；本仓库继续作为原始
+  Text2SQL 实验和 Schema 工具仓库，不要在这里重复实现公网 Agent。
+- ChainLens 现在采用“精确专家内核 + LangGraph 受控自主 SQL”双路径：十类
+  高频问题走已审查模板，长尾问题由火山方舟规划 SQL，DeepSeek 备用；模型
+  不生成业务数字，所有结论来自 safe SQL 或确定性内核。
+- 最终本地质量门为 `42 passed`，安全扫描、编译、Ruff 和 Playwright 均通过。
+- 真实 `znjz` MySQL 十问通过；最终公网 API 11/11 通过，其中长尾问题真实
+  调用模型。GitHub Pages 桌面和手机查询、图表、SQL trace、证据与 Markdown
+  报告下载均通过。
+- 最终 ChainLens 代码 commit：`34919c1`；最终 Railway deployment：
+  `7b11edfe-0aba-4772-9142-2a7fee39b6c3`；公网入口不变。
+- Railway 已使用 `/health` + `/ready` 分离、后台 MySQL 物化、900 秒就绪窗口
+  和后端 watch patterns；纯文档或前端提交不会再重载数据库。
+- 完整提交历史、失败部署根因、测试输出和产物路径只维护在
+  `G:\chainlens\docs\AGENT_HANDOFF.md`，接手 ChainLens 必须先读该文件。
